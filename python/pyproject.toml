@@ -1,0 +1,16 @@
+[tool.poetry]
+name = "roster-sdk"
+version = "0.1.0"
+description = "Python SDK for building Roster Agents"
+authors = ["Evan Doyle <evanmdoyle@gmail.com>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.8.1"
+langchain = "^0.0.167"
+websockets = "^11.0.3"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
