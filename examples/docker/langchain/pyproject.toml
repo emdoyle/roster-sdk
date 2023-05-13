@@ -7,6 +7,7 @@ authors = ["Evan Doyle <evanmdoyle@gmail.com>"]
 [tool.poetry.dependencies]
 python = "^3.10"
 langchain = "^0.0.167"
+openai = "^0.27.6"
 
 
 [build-system]

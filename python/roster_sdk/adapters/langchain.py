@@ -37,7 +37,7 @@ class LangchainAgent(RosterAgentInterface):
             raise RuntimeError("Conversation server already running")
         port = port or self.DEFAULT_CONVERSATION_PORT
         start_server = websockets.serve(
-            self.conversation_message_handler, "localhost", port
+            self.conversation_message_handler, "0.0.0.0", port
         )
 
         self.conversation_server = loop.run_until_complete(start_server)
