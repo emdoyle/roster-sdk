@@ -1,5 +1,7 @@
 import argparse
 import importlib
+import os
+import sys
 
 from .entrypoint import Entrypoint
 from .interface import RosterAgentInterface
@@ -21,9 +23,11 @@ def main():
     args = parser.parse_args()
 
     # Dynamically import the module and get the agent
+    sys.path.insert(0, os.getcwd())
     agent = import_object(args.agent_path)
 
     # Check if the agent conforms to the RosterAgentInterface
+    # TODO: duck typing instead of isinstance
     assert isinstance(
         agent, RosterAgentInterface
     ), "The provided agent does not conform to the RosterAgentInterface"

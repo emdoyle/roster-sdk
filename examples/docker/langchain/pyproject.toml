@@ -1,0 +1,14 @@
+[tool.poetry]
+name = "langchain-agent-docker-example"
+version = "0.1.0"
+description = "Langchain Agent Docker Image example for Roster"
+authors = ["Evan Doyle <evanmdoyle@gmail.com>"]
+
+[tool.poetry.dependencies]
+python = "^3.10"
+langchain = "^0.0.167"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
