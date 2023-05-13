@@ -1,7 +1,6 @@
 import asyncio
-import os
 import signal
-from typing import TYPE_CHECKING, Callable
+from typing import TYPE_CHECKING, Callable, Optional
 
 import websockets
 
@@ -15,6 +14,8 @@ loop = asyncio.get_event_loop()
 
 
 class LangchainAgent(RosterAgentInterface):
+    DEFAULT_CONVERSATION_PORT = 8765
+
     def __init__(self, chain: "Chain"):
         self.chain = chain
         self.conversation_server = None
@@ -31,10 +32,10 @@ class LangchainAgent(RosterAgentInterface):
 
         return respond
 
-    def start_conversation(self, name: str) -> None:
+    def start_conversation(self, name: str, port: Optional[int] = None) -> None:
         if self.conversation_server is not None:
             raise RuntimeError("Conversation server already running")
-        port = os.environ.get("ROSTER_AGENT_CONVERSATION_PORT", 8765)
+        port = port or self.DEFAULT_CONVERSATION_PORT
         start_server = websockets.serve(
             self.conversation_message_handler, "localhost", port
         )
@@ -54,6 +55,12 @@ class LangchainAgent(RosterAgentInterface):
 
     def execute_task(self, name: str, description: str) -> None:
         """Execute a task on the agent"""
+        # TODO: The treatment of tasks depends on how we handle and store outputs/results
+        #   this is just a single call to the Chain, but a task likely implies many calls
+        #   and honestly it's usually controlled beneath this layer
+        #   probably implies a more sophisticated interface
+        #   most straightforward is for the ARI to provide the desired location for outputs
+        #   and then the agent can write to that location
         self.chain.run(
             f"Please complete the following task:\nName: {name}\nDescription: {description}"
         )

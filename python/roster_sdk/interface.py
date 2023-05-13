@@ -1,9 +1,10 @@
 from abc import ABC, abstractmethod
+from typing import Optional
 
 
 class RosterAgentInterface(ABC):
     @abstractmethod
-    def start_conversation(self, name: str) -> None:
+    def start_conversation(self, name: str, port: Optional[int] = None) -> None:
         """Start a websocket server representing a conversation with the agent"""
 
     @abstractmethod
