@@ -5,6 +5,9 @@ description = "Python SDK for building Roster Agents"
 authors = ["Evan Doyle <evanmdoyle@gmail.com>"]
 readme = "README.md"
 
+[tool.poetry.scripts]
+roster-agent = "roster_sdk.cli:main"
+
 [tool.poetry.dependencies]
 python = "^3.8.1"
 langchain = "^0.0.167"
