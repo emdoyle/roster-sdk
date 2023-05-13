@@ -1,5 +1,6 @@
 import asyncio
 import os
+import signal
 from typing import TYPE_CHECKING, Callable
 
 import websockets
@@ -8,6 +9,9 @@ from ..interface import RosterAgentInterface
 
 if TYPE_CHECKING:
     from langchain.chains.base import Chain
+
+
+loop = asyncio.get_event_loop()
 
 
 class LangchainAgent(RosterAgentInterface):
@@ -19,6 +23,9 @@ class LangchainAgent(RosterAgentInterface):
     def conversation_message_handler(self) -> Callable:
         async def respond(websocket, path):
             async for message in websocket:
+                if message == "end_conversation":
+                    self.end_conversation()
+                    return
                 response = self.chain.run(message)
                 await websocket.send(response)
 
@@ -32,8 +39,10 @@ class LangchainAgent(RosterAgentInterface):
             self.conversation_message_handler, "localhost", port
         )
 
-        loop = asyncio.get_event_loop()
         self.conversation_server = loop.run_until_complete(start_server)
+
+        loop.add_signal_handler(signal.SIGINT, self.end_conversation)
+        loop.add_signal_handler(signal.SIGTERM, self.end_conversation)
         loop.run_forever()
 
     def end_conversation(self) -> None:
@@ -41,6 +50,7 @@ class LangchainAgent(RosterAgentInterface):
             raise RuntimeError("Conversation server not running")
         self.conversation_server.close()
         self.conversation_server = None
+        loop.stop()
 
     def execute_task(self, name: str, description: str) -> None:
         """Execute a task on the agent"""
