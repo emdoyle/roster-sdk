@@ -3,14 +3,16 @@ import os
 import signal
 from multiprocessing import Process
 
+import aiohttp
 import pytest
 import roster_sdk
-import websockets
 from langchain.agents import AgentType, initialize_agent
 from langchain.chat_models import ChatOpenAI
 from langchain.memory import ConversationBufferMemory
+from roster_sdk.models.chat import ChatMessage
 
 TESTING_CONVERSATION_PORT = 8765
+TESTING_AGENT_NAME = "Alice"
 
 
 def basic_chat_agent():
@@ -23,12 +25,6 @@ def basic_chat_agent():
             memory_key="chat_history", return_messages=True
         ),
     )
-
-
-def run_conversation_server(name: str = "dinosaurs"):
-    agent = basic_chat_agent()
-    roster_agent = roster_sdk.LangchainAgent(agent)
-    roster_agent.start_conversation(name, port=TESTING_CONVERSATION_PORT)
 
 
 @pytest.fixture
@@ -53,54 +49,40 @@ def process_manager():
 
 
 @pytest.mark.asyncio
-async def test_server(process_manager):
-    server_process = process_manager(target=run_conversation_server)
-
-    uri = f"ws://localhost:{TESTING_CONVERSATION_PORT}"
-
-    async for websocket in websockets.connect(uri):
-        await websocket.send("Hello, what is your name?")
-
-        response = await websocket.recv()
-        assert "Assistant" in response
-
-        await websocket.send("end_conversation")
-        break
-
-    # Wait for the server to stop
-    await asyncio.sleep(1)
-
-    # Make sure the server process has ended
-    assert not server_process.is_alive()
+async def test_chat():
+    agent = basic_chat_agent()
+    roster_agent = roster_sdk.LangchainAgent(agent)
+    response = await roster_agent.chat(
+        [ChatMessage(sender="User", message="Hello, what is your name?")]
+    )
+    assert "Assistant" in response
 
 
-def run_conversation_via_entrypoint(name: str = "dinosaurs"):
+def run_conversation_via_entrypoint():
     agent = basic_chat_agent()
     roster_agent = roster_sdk.LangchainAgent(agent)
     entrypoint = roster_sdk.Entrypoint(
         roster_agent,
-        roster_sdk.Config(roster_agent_name="test", conversation_name=name),
+        roster_sdk.Config(
+            roster_runtime_ip="fake",
+            roster_agent_name=TESTING_AGENT_NAME,
+            roster_agent_port=TESTING_CONVERSATION_PORT,
+        ),
     )
     entrypoint.run()
 
 
 @pytest.mark.asyncio
 async def test_entrypoint(process_manager):
-    server_process = process_manager(target=run_conversation_via_entrypoint)
+    process_manager(target=run_conversation_via_entrypoint)
+    await asyncio.sleep(5)
+    url = f"http://localhost:{TESTING_CONVERSATION_PORT}"
 
-    uri = f"ws://localhost:{TESTING_CONVERSATION_PORT}"
-
-    async for websocket in websockets.connect(uri):
-        await websocket.send("Hello, what is your name?")
-
-        response = await websocket.recv()
-        assert "Assistant" in response
-
-        await websocket.send("end_conversation")
-        break
-
-    # Wait for the server to stop
-    await asyncio.sleep(1)
-
-    # Make sure the server process has ended
-    assert not server_process.is_alive()
+    payload = [{"sender": "User", "message": "Hello, what is your name?"}]
+    """make async http post request to the chat endpoint with payload"""
+    async with aiohttp.ClientSession() as session:
+        async with session.post(f"{url}/chat", json=payload) as response:
+            assert response.status == 200
+            response = await response.json()
+            assert response["sender"] == TESTING_AGENT_NAME
+            assert "Assistant" in response["message"]

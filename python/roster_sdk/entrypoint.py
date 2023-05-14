@@ -2,7 +2,11 @@ import os
 from dataclasses import dataclass
 from typing import Optional
 
+import uvicorn
+from fastapi import FastAPI
+
 from .interface import RosterAgentInterface
+from .models.chat import ChatMessage
 
 
 @dataclass
@@ -37,11 +41,25 @@ class Entrypoint:
     def __init__(self, agent: RosterAgentInterface, config: Config):
         self.agent = agent
         self.config = config
+        self.app = FastAPI(title="Roster Agent", version="0.1.0")
+        self.setup_routes()
 
     @classmethod
     def from_env(cls, agent: RosterAgentInterface):
         config = Config.from_env()
         return cls(agent=agent, config=config)
+
+    def setup_routes(self):
+        @self.app.post("/chat")
+        async def chat(chat_history: list[ChatMessage]) -> ChatMessage:
+            """Respond to a prompt"""
+            response = await self.agent.chat(chat_history)
+            return ChatMessage(sender=self.config.roster_agent_name, message=response)
+
+        @self.app.post("/execute_task")
+        async def execute_task(name: str, description: str) -> None:
+            """Execute a task on the agent"""
+            return await self.agent.execute_task(name, description)
 
     def run(self):
         if not self.config.is_valid:
@@ -49,5 +67,4 @@ class Entrypoint:
                 "Invalid Roster Agent configuration. Verify environment variables."
             )
 
-        # Here is where the FastAPI server should start up
-        # implies we need route handlers etc.
+        uvicorn.run(self.app, host="0.0.0.0", port=self.config.roster_agent_port)
