@@ -10,14 +10,15 @@ roster-agent = "roster_sdk.cli:main"
 
 [tool.poetry.dependencies]
 python = "^3.8.1"
-langchain = "^0.0.167"
-websockets = "^11.0.3"
+langchain = { version = "^0.0.167", optional = true }
 
 [tool.poetry.dev-dependencies]
 pytest = "^7.3.1"
 pytest-asyncio = "^0.21.0"
 openai = "^0.27.6"
 
+[tool.poetry.extras]
+langchain = ["langchain"]
 
 [build-system]
 requires = ["poetry-core"]

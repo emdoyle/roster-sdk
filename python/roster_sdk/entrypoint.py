@@ -9,42 +9,26 @@ from .interface import RosterAgentInterface
 class Config:
     roster_runtime_ip: Optional[str] = None
     roster_agent_name: Optional[str] = None
-    task_id: Optional[str] = None
-    task_name: Optional[str] = None
-    task_description: Optional[str] = None
-    conversation_id: Optional[str] = None
-    conversation_name: Optional[str] = None
-    conversation_port: Optional[str] = None
+    roster_agent_port: Optional[int] = None
 
     @classmethod
     def from_env(cls):
+        port = os.getenv("ROSTER_AGENT_PORT")
+        if port is not None:
+            port = int(port)
         return cls(
             roster_runtime_ip=os.getenv("ROSTER_RUNTIME_IP"),
             roster_agent_name=os.getenv("ROSTER_AGENT_NAME"),
-            task_id=os.getenv("ROSTER_AGENT_TASK_ID"),
-            task_name=os.getenv("ROSTER_AGENT_TASK_NAME"),
-            task_description=os.getenv("ROSTER_AGENT_TASK_DESCRIPTION"),
-            conversation_id=os.getenv("ROSTER_AGENT_CONVERSATION_ID"),
-            conversation_name=os.getenv("ROSTER_AGENT_CONVERSATION_NAME"),
-            conversation_port=os.getenv("ROSTER_AGENT_CONVERSATION_PORT"),
+            roster_agent_port=port,
         )
 
     @property
-    def is_valid_conversation(self) -> bool:
+    def is_valid(self) -> bool:
         return all(
             [
-                self.roster_agent_name,
-                self.conversation_name,
-            ]
-        )
-
-    @property
-    def is_valid_task(self) -> bool:
-        return all(
-            [
-                self.roster_agent_name,
-                self.task_name,
-                self.task_description,
+                self.roster_runtime_ip is not None,
+                self.roster_agent_name is not None,
+                self.roster_agent_port is not None,
             ]
         )
 
@@ -60,16 +44,10 @@ class Entrypoint:
         return cls(agent=agent, config=config)
 
     def run(self):
-        if self.config.is_valid_conversation:
-            self.agent.start_conversation(
-                name=self.config.conversation_name, port=self.config.conversation_port
-            )
-        elif self.config.is_valid_task:
-            self.agent.execute_task(
-                name=self.config.task_name,
-                description=self.config.task_description,
-            )
-        else:
+        if not self.config.is_valid:
             raise ValueError(
                 "Invalid Roster Agent configuration. Verify environment variables."
             )
+
+        # Here is where the FastAPI server should start up
+        # implies we need route handlers etc.
