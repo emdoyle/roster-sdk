@@ -7,6 +7,7 @@ from fastapi import FastAPI
 
 from .interface import RosterAgentInterface
 from .models.chat import ChatMessage
+from .models.task import Task
 
 
 @dataclass
@@ -50,16 +51,21 @@ class Entrypoint:
         return cls(agent=agent, config=config)
 
     def setup_routes(self):
+        @self.app.get("/healthcheck")
+        async def healthcheck() -> bool:
+            """Healthcheck"""
+            return True
+
         @self.app.post("/chat")
         async def chat(chat_history: list[ChatMessage]) -> ChatMessage:
             """Respond to a prompt"""
             response = await self.agent.chat(chat_history)
             return ChatMessage(sender=self.config.roster_agent_name, message=response)
 
-        @self.app.post("/execute_task")
-        async def execute_task(name: str, description: str) -> None:
+        @self.app.post("/task")
+        async def execute_task(task: Task) -> None:
             """Execute a task on the agent"""
-            return await self.agent.execute_task(name, description)
+            return await self.agent.execute_task(task.name, task.description)
 
     def run(self):
         if not self.config.is_valid:

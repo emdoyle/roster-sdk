@@ -79,7 +79,6 @@ async def test_entrypoint(process_manager):
     url = f"http://localhost:{TESTING_CONVERSATION_PORT}"
 
     payload = [{"sender": "User", "message": "Hello, what is your name?"}]
-    """make async http post request to the chat endpoint with payload"""
     async with aiohttp.ClientSession() as session:
         async with session.post(f"{url}/chat", json=payload) as response:
             assert response.status == 200
