@@ -12,6 +12,8 @@ roster-agent = "roster_sdk.agent.cli:main"
 python = "^3.8.1"
 fastapi = "^0.95.1"
 uvicorn = "^0.22.0"
+environs = "^9.5.0"
+requests = "^2.31.0"
 langchain = { version = "^0.0.167", optional = true }
 
 [tool.poetry.dev-dependencies]
