@@ -4,10 +4,10 @@ from typing import Optional
 
 import uvicorn
 from fastapi import FastAPI
+from roster_sdk.models.chat import ChatMessage
+from roster_sdk.models.task import Task
 
 from .interface import RosterAgentInterface
-from .models.chat import ChatMessage
-from .models.task import Task
 
 
 @dataclass

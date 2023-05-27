@@ -1,8 +1,7 @@
-import roster_sdk
-
 from langchain.agents import AgentType, initialize_agent
 from langchain.chat_models import ChatOpenAI
 from langchain.memory import ConversationBufferMemory
+from roster_sdk import adapters
 
 
 def basic_chat_agent():
@@ -17,4 +16,4 @@ def basic_chat_agent():
     )
 
 
-agent = roster_sdk.LangchainAgent(basic_chat_agent())
+agent = adapters.LangchainAgent(basic_chat_agent())

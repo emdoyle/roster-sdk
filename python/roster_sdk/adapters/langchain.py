@@ -1,6 +1,7 @@
 from typing import TYPE_CHECKING
 
-from ..interface import RosterAgentInterface
+from roster_sdk.agent.interface import RosterAgentInterface
+
 from ..models.chat import ChatMessage
 
 if TYPE_CHECKING:

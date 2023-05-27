@@ -1,12 +1,12 @@
 [tool.poetry]
 name = "roster-sdk"
 version = "0.1.0"
-description = "Python SDK for building Roster Agents"
+description = "Python SDK for Roster"
 authors = ["Evan Doyle <evanmdoyle@gmail.com>"]
 readme = "README.md"
 
 [tool.poetry.scripts]
-roster-agent = "roster_sdk.cli:main"
+roster-agent = "roster_sdk.agent.cli:main"
 
 [tool.poetry.dependencies]
 python = "^3.8.1"
