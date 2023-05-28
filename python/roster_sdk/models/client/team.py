@@ -1,48 +1,45 @@
 from pydantic import BaseModel, Field
 
+from ..resources.team import TeamSpec
 from .role import RoleContext
 
-
-class TeamLayoutContext(BaseModel):
-    roles: dict[str, RoleContext] = Field(
-        default_factory=list, description="The roles of the team layout."
-    )
-    peer_groups: dict[str, list[str]] = Field(
-        default_factory=list, description="The peer groups of the team layout."
-    )
-    management_groups: dict[str, list[str]] = Field(
-        default_factory=list, description="The management groups of the team layout."
-    )
-
-    class Config:
-        validate_assignment = True
-        schema_extra = {
-            "example": {
-                "roles": {
-                    "role1": RoleContext.Config.schema_extra["example"],
-                    "role2": RoleContext.Config.schema_extra["example"],
-                },
-                "peer_groups": {
-                    "group1": ["role1", "role2"],
-                    "group2": ["role2", "role3"],
-                },
-                "management_groups": {
-                    "manager1": ["role1", "role2"],
-                    "manager2": ["role2", "role2"],
-                },
-            }
-        }
+# Context is from the perspective of a specific Agent,
+# in contrast to Resource which is from the perspective of the Roster API.
+# In this case, the Team Context is trimmed to only the role, peers, and managers
+# of the Agent.
 
 
 class TeamContext(BaseModel):
     name: str = Field(description="The name of the team.")
-    layout: TeamLayoutContext = Field(description="The layout of the team.")
+    role: RoleContext = Field(description="The Agent's role in the team layout.")
+    peers: list[RoleContext] = Field(
+        default_factory=list, description="The Agent's peers in the team layout."
+    )
+    manager: RoleContext = Field(description="The Agent's manager in the team layout.")
 
     class Config:
         validate_assignment = True
         schema_extra = {
             "example": {
                 "name": "Red Team",
-                "layout": TeamLayoutContext.Config.schema_extra["example"],
+                "role": RoleContext.Config.schema_extra["example"],
+                "peer_groups": {
+                    "group1": ["role1", "role2"],
+                    "group2": ["role2", "role3"],
+                },
+                "manager": "manager1",
             }
         }
+
+    @classmethod
+    def from_spec(cls, agent: str, spec: TeamSpec) -> "TeamContext":
+        team = spec.name
+        agent_role = spec.get_agent_role(agent)
+        peers = spec.get_agent_peers(agent)
+        manager = spec.get_agent_manager(agent)
+        return cls(
+            name=team,
+            role=RoleContext.from_spec(team, agent_role),
+            peers=[RoleContext.from_spec(team, peer) for peer in peers],
+            manager=RoleContext.from_spec(team, manager),
+        )

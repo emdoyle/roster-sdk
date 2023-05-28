@@ -1,9 +1,11 @@
 from functools import cached_property
 from typing import Generic, Type, TypeVar
 
+import pydantic
 import requests
 from roster_sdk import config
 from roster_sdk.client import errors
+from roster_sdk.models.chat import ChatMessage
 from roster_sdk.models.resources.agent import AgentResource
 from roster_sdk.models.resources.role import RoleResource
 from roster_sdk.models.resources.team import TeamResource
@@ -77,6 +79,23 @@ class RosterClient:
 
     def delete(self, endpoint: str) -> None:
         self._request("DELETE", endpoint)
+
+    def chat_prompt_agent(
+        self, agent: str, history: list[ChatMessage], message: ChatMessage
+    ) -> ChatMessage:
+        try:
+            response_data = self.post(
+                f"{config.ROSTER_API_COMMANDS_PATH}/agent-chat/{agent}",
+                data={
+                    "history": [_message.dict() for _message in history],
+                    "message": message.dict(),
+                },
+            )
+            return ChatMessage(**response_data)
+        except errors.RosterClientException:
+            raise
+        except pydantic.ValidationError as e:
+            raise errors.RosterClientException(e.json())
 
     @cached_property
     def agent(self) -> CRUDResource[AgentResource]:

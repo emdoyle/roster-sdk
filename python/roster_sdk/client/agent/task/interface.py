@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 
 
-class RosterAgentTaskInterface(ABC):
+class TaskInterface(ABC):
     @abstractmethod
     async def get_task_context(self, task: str) -> dict:
         pass
