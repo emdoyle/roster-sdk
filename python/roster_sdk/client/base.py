@@ -3,10 +3,11 @@ from typing import Generic, Type, TypeVar
 
 import requests
 from roster_sdk import config
-from roster_sdk.models.agent import AgentResource
-from roster_sdk.models.role import RoleResource
-from roster_sdk.models.team import TeamResource
-from roster_sdk.models.team_layout import TeamLayoutResource
+from roster_sdk.client import errors
+from roster_sdk.models.resources.agent import AgentResource
+from roster_sdk.models.resources.role import RoleResource
+from roster_sdk.models.resources.team import TeamResource
+from roster_sdk.models.resources.team_layout import TeamLayoutResource
 
 ResourceType = TypeVar("ResourceType")
 
@@ -48,17 +49,34 @@ class RosterClient:
     def from_env(cls) -> "RosterClient":
         return cls(roster_api_url=config.ROSTER_API_URL)
 
+    def _request(
+        self, method: str, endpoint: str, data: dict = None
+    ) -> requests.Response:
+        try:
+            response = requests.request(
+                method=method, url=f"{self.roster_api_url}/{endpoint}", json=data
+            )
+        except requests.exceptions.ConnectionError:
+            raise errors.RosterConnectionError()
+        if response.status_code == 404:
+            raise errors.ResourceNotFound()
+        elif response.status_code != 200:
+            raise errors.RosterClientException(
+                f"Roster API returned {response.status_code}"
+            )
+        return response
+
     def get(self, endpoint: str) -> dict:
-        return requests.get(f"{self.roster_api_url}/{endpoint}").json()
+        return self._request("GET", endpoint).json()
 
     def post(self, endpoint: str, data: dict) -> dict:
-        return requests.post(f"{self.roster_api_url}/{endpoint}", json=data).json()
+        return self._request("POST", endpoint, data=data).json()
 
     def patch(self, endpoint: str, data: dict) -> dict:
-        return requests.patch(f"{self.roster_api_url}/{endpoint}", json=data).json()
+        return self._request("PATCH", endpoint, data=data).json()
 
     def delete(self, endpoint: str) -> None:
-        requests.delete(f"{self.roster_api_url}/{endpoint}")
+        self._request("DELETE", endpoint)
 
     @cached_property
     def agent(self) -> CRUDResource[AgentResource]:

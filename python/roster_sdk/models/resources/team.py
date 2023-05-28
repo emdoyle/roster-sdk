@@ -1,7 +1,10 @@
+from typing import Optional
+
 from pydantic import BaseModel, Field, constr
+from roster_sdk.models.base import RosterResource
 
 from .agent import AgentSpec
-from .base import RosterResource
+from .role import RoleSpec
 from .team_layout import TeamLayoutSpec
 
 
@@ -24,6 +27,14 @@ class TeamSpec(BaseModel):
                 },
             }
         }
+
+    def get_agent_role(self, name: str) -> Optional[RoleSpec]:
+        role_name = next(
+            (role for role, agent in self.members.items() if agent.name == name), None
+        )
+        if role_name is None:
+            return None
+        return self.layout.roles[role_name]
 
 
 class TeamStatus(BaseModel):
@@ -59,3 +70,6 @@ class TeamResource(RosterResource):
     @classmethod
     def initial_state(cls, spec: TeamSpec) -> "TeamResource":
         return cls(spec=spec, status=TeamStatus(name=spec.name))
+
+    def get_agent_role(self, name: str) -> Optional[RoleSpec]:
+        return self.spec.get_agent_role(name)

@@ -1,6 +1,6 @@
 from pydantic import BaseModel, Field, constr
+from roster_sdk.models.base import RosterResource
 
-from .base import RosterResource
 from .role import RoleSpec
 
 

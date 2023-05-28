@@ -1,8 +1,7 @@
 from typing import Optional
 
 from pydantic import BaseModel, Field, constr
-
-from .base import RosterResource
+from roster_sdk.models.base import RosterResource
 
 
 class AgentCapabilities(BaseModel):
