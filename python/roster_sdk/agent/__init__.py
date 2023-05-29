@@ -1,2 +1,2 @@
-from .entrypoint import Config, Entrypoint
+from .entrypoint import AgentConfig, Entrypoint
 from .interface import RosterAgentInterface

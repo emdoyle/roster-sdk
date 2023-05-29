@@ -1,45 +1,14 @@
-import os
-from dataclasses import dataclass
-from typing import Optional
-
 import uvicorn
 from fastapi import FastAPI
 from roster_sdk.models.chat import ChatMessage
 from roster_sdk.models.task import Task
 
+from ..config import AgentConfig
 from .interface import RosterAgentInterface
 
 
-@dataclass
-class Config:
-    roster_runtime_ip: Optional[str] = None
-    roster_agent_name: Optional[str] = None
-    roster_agent_port: Optional[int] = None
-
-    @classmethod
-    def from_env(cls):
-        port = os.getenv("ROSTER_AGENT_PORT")
-        if port is not None:
-            port = int(port)
-        return cls(
-            roster_runtime_ip=os.getenv("ROSTER_RUNTIME_IP"),
-            roster_agent_name=os.getenv("ROSTER_AGENT_NAME"),
-            roster_agent_port=port,
-        )
-
-    @property
-    def is_valid(self) -> bool:
-        return all(
-            [
-                self.roster_runtime_ip is not None,
-                self.roster_agent_name is not None,
-                self.roster_agent_port is not None,
-            ]
-        )
-
-
 class Entrypoint:
-    def __init__(self, agent: RosterAgentInterface, config: Config):
+    def __init__(self, agent: RosterAgentInterface, config: AgentConfig):
         self.agent = agent
         self.config = config
         self.app = FastAPI(title="Roster Agent", version="0.1.0")
@@ -47,7 +16,7 @@ class Entrypoint:
 
     @classmethod
     def from_env(cls, agent: RosterAgentInterface):
-        config = Config.from_env()
+        config = AgentConfig.from_env()
         return cls(agent=agent, config=config)
 
     def setup_routes(self):

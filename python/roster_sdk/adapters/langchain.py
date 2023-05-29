@@ -1,31 +1,64 @@
-from typing import TYPE_CHECKING
+from functools import wraps
 
-from roster_sdk.agent.interface import RosterAgentInterface
+from roster_sdk.client.agent import CollaborationInterface
+from roster_sdk.config import AgentConfig
 
-from ..models.chat import ChatMessage
+from langchain.tools import StructuredTool
 
-if TYPE_CHECKING:
-    from langchain.chains.base import Chain
+role_context_description = """
+Figure out what your current role is on a given team.
+Example:
+role_context("Alpha Team") -> "team": "Alpha Team", "role": "Backend Python Developer", "description": ...
+"""
+
+team_context_description = """
+Figure out who your teammates are and who your manager is.
+Example:
+team_context("Alpha Team") -> "team": "Alpha Team", "role": "Backend Python Developer", "peers": [...], "manager": ...
+"""
+
+ask_team_member_description = """
+Ask a question to a teammate. Use the name of their role on the team.
+Example:
+ask_team_member("Alpha Team", "Frontend Developer", "What's the status of the new feature?") -> "It's almost done!"
+"""
+
+ask_manager_description = """
+Ask a question to your manager.
+Example:
+ask_manager("Alpha Team", "What do you think of my work so far?") -> "It looks great!"
+"""
 
 
-class LangchainAgent(RosterAgentInterface):
-    def __init__(self, chain: "Chain"):
-        self.chain = chain
+def strfn(fn):
+    @wraps(fn)
+    def wrapper(*args, **kwargs):
+        return str(fn(*args, **kwargs))
 
-    async def chat(self, chat_history: list[ChatMessage]) -> str:
-        # If the Chain is a ConversationalAgent,
-        # then it is already storing the history in a ConversationBufferMemory
-        # so we should only send the last message
-        return await self.chain.arun(chat_history[-1].message)
+    return wrapper
 
-    async def execute_task(self, name: str, description: str) -> None:
-        """Execute a task on the agent"""
-        # TODO: The treatment of tasks depends on how we handle and store outputs/results
-        #   this is just a single call to the Chain, but a task likely implies many calls
-        #   and honestly it's usually controlled beneath this layer
-        #   probably implies a more sophisticated interface
-        #   most straightforward is for the ARI to provide the desired location for outputs
-        #   and then the agent can write to that location
-        await self.chain.arun(
-            f"Please complete the following task:\nName: {name}\nDescription: {description}"
-        )
+
+def roster_collaboration_tools(agent: str) -> list[StructuredTool]:
+    collab_interface = CollaborationInterface.from_env(agent_name=agent)
+    return [
+        StructuredTool.from_function(
+            strfn(collab_interface.get_role_context),
+            description=role_context_description,
+        ),
+        StructuredTool.from_function(
+            strfn(collab_interface.get_team_context),
+            description=team_context_description,
+        ),
+        StructuredTool.from_function(
+            strfn(collab_interface.ask_team_member),
+            description=ask_team_member_description,
+        ),
+        StructuredTool.from_function(
+            strfn(collab_interface.ask_manager), description=ask_manager_description
+        ),
+    ]
+
+
+def get_roster_langchain_tools() -> list[StructuredTool]:
+    agent = AgentConfig.from_env().roster_agent_name
+    return [*roster_collaboration_tools(agent)]
