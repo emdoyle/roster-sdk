@@ -8,7 +8,7 @@ env = Env()
 env.read_env()
 
 # Roster API Config
-ROSTER_API_URL = env.str("ROSTER_API_URL", "http://localhost:7888/v0.1")
+ROSTER_API_URL = env.str("ROSTER_API_URL", "http://host.docker.internal:7888/v0.1")
 ROSTER_API_EVENTS_PATH = env.str("ROSTER_API_EVENTS_PATH", "/resource-events")
 ROSTER_API_AGENTS_PATH = env.str("ROSTER_API_AGENTS_PATH", "/agents")
 ROSTER_API_TASKS_PATH = env.str("ROSTER_API_TASKS_PATH", "/task")

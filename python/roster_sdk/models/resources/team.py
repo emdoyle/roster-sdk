@@ -30,7 +30,8 @@ class TeamSpec(BaseModel):
 
     def get_agent_role(self, name: str) -> Optional[RoleSpec]:
         role_name = next(
-            (role for role, agent in self.members.items() if agent.name == name), None
+            (role for role, agent in self.members.items() if agent.name == name),
+            None,
         )
         if role_name is None:
             return None

@@ -56,7 +56,7 @@ class RosterClient:
     ) -> requests.Response:
         try:
             response = requests.request(
-                method=method, url=f"{self.roster_api_url}/{endpoint}", json=data
+                method=method, url=f"{self.roster_api_url}{endpoint}", json=data
             )
         except requests.exceptions.ConnectionError:
             raise errors.RosterConnectionError()
