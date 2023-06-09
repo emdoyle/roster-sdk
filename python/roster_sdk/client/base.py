@@ -8,6 +8,7 @@ from roster_sdk.client import errors
 from roster_sdk.models.chat import ChatMessage
 from roster_sdk.models.resources.agent import AgentResource
 from roster_sdk.models.resources.role import RoleResource
+from roster_sdk.models.resources.task import TaskResource
 from roster_sdk.models.resources.team import TeamResource
 from roster_sdk.models.resources.team_layout import TeamLayoutResource
 
@@ -30,6 +31,9 @@ class CRUDResource(Generic[ResourceType]):
 
     def create(self, data: dict) -> ResourceType:
         return self._deserialize(self.client.post(self.endpoint, data=data))
+
+    def list(self) -> list[ResourceType]:
+        return list(map(self._deserialize, self.client.get(self.endpoint)))
 
     def get(self, name: str) -> ResourceType:
         return self._deserialize(self.client.get(f"{self.endpoint}/{name}"))
@@ -80,6 +84,9 @@ class RosterClient:
     def delete(self, endpoint: str) -> None:
         self._request("DELETE", endpoint)
 
+    def status_update(self, data: dict) -> None:
+        self.post(config.ROSTER_API_STATUS_UPDATE_PATH, data=data)
+
     def chat_prompt_agent(
         self, agent: str, history: list[ChatMessage], message: ChatMessage
     ) -> ChatMessage:
@@ -127,4 +134,12 @@ class RosterClient:
             client=self,
             endpoint=config.ROSTER_API_TEAM_LAYOUTS_PATH,
             resource_type=TeamLayoutResource,
+        )
+
+    @cached_property
+    def task(self) -> CRUDResource[TaskResource]:
+        return CRUDResource(
+            client=self,
+            endpoint=config.ROSTER_API_TASKS_PATH,
+            resource_type=TaskResource,
         )
