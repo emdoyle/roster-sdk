@@ -1,7 +1,7 @@
 import uvicorn
 from fastapi import FastAPI
 from roster_sdk.models.chat import ChatMessage
-from roster_sdk.models.resources.task import TaskAssignment, TaskSpec
+from roster_sdk.models.resources.task import ExecuteTaskArgs, TaskAssignment, TaskSpec
 
 from ..config import AgentConfig
 from .interface import RosterAgentInterface
@@ -31,12 +31,12 @@ class Entrypoint:
             response = await self.agent.chat(chat_history)
             return ChatMessage(sender=self.config.roster_agent_name, message=response)
 
-        @self.app.post("/task")
-        async def execute_task(
-            name: str, description: str, assignment: TaskAssignment
-        ) -> bool:
+        @self.app.post("/tasks")
+        async def execute_task(args: ExecuteTaskArgs) -> bool:
             """Execute a task on the agent"""
-            return await self.agent.ack_task(name, description, assignment)
+            return await self.agent.ack_task(
+                args.task, args.description, args.assignment
+            )
 
     def run(self):
         if not self.config.is_valid:

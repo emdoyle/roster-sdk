@@ -23,7 +23,9 @@ class BaseRosterAgent(RosterAgentInterface, ABC):
         self.config = AgentConfig.from_env()
         self.task_manager = TaskManager.from_env(self.config.roster_agent_name)
 
-    def ack_task(self, name: str, description: str, assignment: TaskAssignment) -> bool:
+    async def ack_task(
+        self, name: str, description: str, assignment: TaskAssignment
+    ) -> bool:
         self.task_manager.run_task(self.execute_task, name, description, assignment)
         return True
 
