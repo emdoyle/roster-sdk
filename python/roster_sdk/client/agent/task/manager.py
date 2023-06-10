@@ -1,11 +1,16 @@
 import asyncio
 from typing import Callable, Coroutine
 
+from roster_sdk.agent.logs import get_roster_agent_logger
+from roster_sdk.client import errors
 from roster_sdk.models.resources.task import TaskAssignment
 
 from .interface import TaskInterface
 
 TaskExecutor = Callable[..., Coroutine[None, None, str]]
+
+# Should SDK code use the Agent logger?
+logger = get_roster_agent_logger()
 
 
 class TaskManager:
@@ -17,6 +22,22 @@ class TaskManager:
     def from_env(cls, agent_name: str) -> "TaskManager":
         return cls(TaskInterface.from_env(agent_name))
 
+    def _finish_task(
+        self,
+        task: str,
+        description: str,
+        assignment: TaskAssignment,
+        result: str,
+        error: str,
+    ):
+        try:
+            self.task_interface.finish_task(
+                task, description, assignment, result=result, error=error
+            )
+        except errors.RosterClientException as e:
+            logger.error("Failed to finalize task: %s", task)
+            logger.debug("(task-manager) Failed to finalize task %s: %s", task, e)
+
     async def _run_task(
         self,
         task_executor: TaskExecutor,
@@ -27,17 +48,13 @@ class TaskManager:
         try:
             result = await task_executor(name, description, assignment)
         except asyncio.CancelledError:
-            self.task_interface.finish_task(
+            self._finish_task(
                 name, description, assignment, result="", error="Task cancelled"
             )
         except Exception as e:
-            self.task_interface.finish_task(
-                name, description, assignment, result="", error=str(e)
-            )
+            self._finish_task(name, description, assignment, result="", error=str(e))
         else:
-            self.task_interface.finish_task(
-                name, description, assignment, result=result, error=""
-            )
+            self._finish_task(name, description, assignment, result=result, error="")
         finally:
             del self.running_tasks[name]
 

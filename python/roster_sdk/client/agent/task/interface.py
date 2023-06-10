@@ -35,7 +35,14 @@ class TaskInterface:
             result=result,
             error=error,
         )
-        self.client.status_update(updated_task_status.dict())
+        status_update_event = {
+            "event_type": "PUT",
+            "resource_type": "TASK",
+            "namespace": "default",
+            "name": task,
+            "status": updated_task_status.dict(),
+        }
+        self.client.status_update(status_update_event)
 
     async def execute_subtask(self, task: str, description: str) -> str:
         """Asynchronously execute a subtask and receive its result"""
