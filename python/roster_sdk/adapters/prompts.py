@@ -1,9 +1,6 @@
-CHAT_PREAMBLE = """You are running in a collaboration system called Roster.
-You may be asked to answer questions in the context of your role in a team.
-If the you are referred to by a name you don't recognize, try checking your
-role context with the `get_role_context` tool. Please respond to what I say below:
-
-"""
+CHAT_PREAMBLE = """
+Before giving up, use a tool to check your agent context, and then your role context on your team.
+Please respond to what I say next: """
 
 BASIC_TASK_PROMPT = """
 Please complete the following task:

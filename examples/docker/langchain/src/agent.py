@@ -25,7 +25,7 @@ class LangchainAgent(BaseRosterAgent):
 
     async def chat(self, chat_history: list[ChatMessage]) -> str:
         return self.agent.run(
-            chat_history[-1].message, callbacks=[RosterLoggingHandler()]
+            CHAT_PREAMBLE + chat_history[-1].message, callbacks=[RosterLoggingHandler()]
         )
 
     async def execute_task(
