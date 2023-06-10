@@ -11,32 +11,22 @@ from langchain.tools import StructuredTool
 
 agent_context_description = """
 Figure out your name and what teams you're on.
-Example:
-agent_context() -> "name": "Alice", "teams": ["Alpha Team", "Beta Team"]
 """
 
 role_context_description = """
 Figure out what your current role is on a given team.
-Example:
-role_context("Alpha Team") -> "team": "Alpha Team", "role": "Backend Python Developer", "description": ...
 """
 
 team_context_description = """
 Figure out who your teammates are and who your manager is.
-Example:
-team_context("Alpha Team") -> "team": "Alpha Team", "role": "Backend Python Developer", "peers": [...], "manager": ...
 """
 
 ask_team_member_description = """
 Ask a question to a teammate. Use the name of their role on the team.
-Example:
-ask_team_member("Alpha Team", "Frontend Developer", "What's the status of the new feature?") -> "It's almost done!"
 """
 
 ask_manager_description = """
 Ask a question to your manager.
-Example:
-ask_manager("Alpha Team", "What do you think of my work so far?") -> "It looks great!"
 """
 
 

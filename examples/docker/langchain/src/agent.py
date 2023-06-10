@@ -2,7 +2,7 @@ from langchain.agents import AgentType, initialize_agent
 from langchain.chat_models import ChatOpenAI
 from roster_sdk.adapters import get_roster_langchain_tools
 from roster_sdk.adapters.langchain import RosterLoggingHandler
-from roster_sdk.adapters.prompts import BASIC_TASK_PROMPT
+from roster_sdk.adapters.prompts import BASIC_TASK_PROMPT, CHAT_PREAMBLE
 from roster_sdk.agent.interface import BaseRosterAgent
 from roster_sdk.models.chat import ChatMessage
 from roster_sdk.models.resources.task import TaskAssignment

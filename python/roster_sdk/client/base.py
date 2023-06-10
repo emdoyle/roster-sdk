@@ -27,7 +27,9 @@ class CRUDResource(Generic[ResourceType]):
         try:
             return self.resource_type(**data)
         except TypeError:
-            raise TypeError(f"Expected {self.resource_type} but got {data}")
+            raise errors.RosterClientException(
+                f"Expected {self.resource_type} but got {data}"
+            )
 
     def create(self, data: dict) -> ResourceType:
         return self._deserialize(self.client.post(self.endpoint, data=data))
@@ -36,14 +38,24 @@ class CRUDResource(Generic[ResourceType]):
         return list(map(self._deserialize, self.client.get(self.endpoint)))
 
     def get(self, name: str) -> ResourceType:
+        if not name:
+            raise errors.RosterClientException("Cannot get resource with empty name.")
         return self._deserialize(self.client.get(f"{self.endpoint}/{name}"))
 
     def update(self, name: str, data: dict) -> ResourceType:
+        if not name:
+            raise errors.RosterClientException(
+                "Cannot update resource with empty name."
+            )
         return self._deserialize(
             self.client.patch(f"{self.endpoint}/{name}", data=data)
         )
 
     def delete(self, name: str) -> None:
+        if not name:
+            raise errors.RosterClientException(
+                "Cannot delete resource with empty name."
+            )
         self.client.delete(f"{self.endpoint}/{name}")
 
 
