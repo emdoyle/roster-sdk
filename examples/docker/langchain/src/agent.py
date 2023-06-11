@@ -35,7 +35,9 @@ class LangchainAgent(BaseRosterAgent):
             get_chat_preamble(agent_name=self.agent_name, team_name=team_name)
             + STRUCTURED_CHAT_SUFFIX
         )
-        return basic_chat_agent(memory_prompts=memory, suffix=suffix).run(
+        return basic_chat_agent(
+            team=team_name, memory_prompts=memory, suffix=suffix
+        ).run(
             chat_history[-1].message,
             callbacks=[RosterLoggingHandler()],
         )

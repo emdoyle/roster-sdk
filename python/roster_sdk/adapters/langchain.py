@@ -1,4 +1,5 @@
-from functools import partial, wraps
+import inspect
+from functools import wraps
 
 from roster_sdk.agent.logs import get_roster_agent_logger
 from roster_sdk.client.agent import CollaborationInterface
@@ -38,6 +39,28 @@ def strfn(fn):
     return wrapper
 
 
+def as_tool_fn(fn, team: str = ""):
+    # Get the original signature
+    orig_sig = inspect.signature(fn)
+
+    # Build a new signature, filtering out the curried arguments
+    new_params = [
+        param for name, param in orig_sig.parameters.items() if name != "team"
+    ]
+    new_sig = orig_sig.replace(parameters=new_params)
+
+    @wraps(fn)
+    def wrapper(*args, **kwargs):
+        if team:
+            kwargs["team"] = team
+        return strfn(fn(*args, **kwargs))
+
+    # Assign the new signature to the wrapper function
+    wrapper.__signature__ = new_sig
+
+    return wrapper
+
+
 def roster_base_tools(agent: str) -> list[StructuredTool]:
     base_interface = BaseRosterInterface.from_env(agent_name=agent)
     return [
@@ -54,27 +77,22 @@ def roster_base_tools(agent: str) -> list[StructuredTool]:
 def roster_collaboration_tools(agent: str, team: str = "") -> list[StructuredTool]:
     collab_interface = CollaborationInterface.from_env(agent_name=agent)
 
-    def as_tool(fn):
-        if team:
-            # NOTE: This assumes that fn accepts 'team' as an argument!
-            return strfn(partial(fn, team=team))
-        return strfn(fn)
-
     return [
         StructuredTool.from_function(
-            as_tool(collab_interface.get_role_context),
+            as_tool_fn(collab_interface.get_role_context, team=team),
             description=role_context_description,
         ),
         StructuredTool.from_function(
-            as_tool(collab_interface.get_team_context),
+            as_tool_fn(collab_interface.get_team_context, team=team),
             description=team_context_description,
         ),
         StructuredTool.from_function(
-            as_tool(collab_interface.ask_team_member),
+            as_tool_fn(collab_interface.ask_team_member, team=team),
             description=ask_team_member_description,
         ),
         StructuredTool.from_function(
-            as_tool(collab_interface.ask_manager), description=ask_manager_description
+            as_tool_fn(collab_interface.ask_manager, team=team),
+            description=ask_manager_description,
         ),
     ]
 
