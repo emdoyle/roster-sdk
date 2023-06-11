@@ -31,14 +31,6 @@ Ask a question to your manager.
 """
 
 
-def strfn(fn):
-    @wraps(fn)
-    def wrapper(*args, **kwargs):
-        return str(fn(*args, **kwargs))
-
-    return wrapper
-
-
 def as_tool_fn(fn, team: str = ""):
     # Get the original signature
     orig_sig = inspect.signature(fn)
@@ -53,7 +45,7 @@ def as_tool_fn(fn, team: str = ""):
     def wrapper(*args, **kwargs):
         if team:
             kwargs["team"] = team
-        return strfn(fn(*args, **kwargs))
+        return str(fn(*args, **kwargs))
 
     # Assign the new signature to the wrapper function
     wrapper.__signature__ = new_sig
