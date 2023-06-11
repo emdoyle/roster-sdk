@@ -1,6 +1,9 @@
 CHAT_PREAMBLE = """
-Before giving up, use a tool to check your agent context, and then your role context on your team.
-Please respond to what I say next: """
+This conversation is happening within a system called Roster,
+and you are acting as the Agent named {agent_name} in this system.
+You can check your agent context to see which teams you are on, and use the team
+name with your tools to find out more.
+"""
 
 BASIC_TASK_PROMPT = """
 Please complete the following task:

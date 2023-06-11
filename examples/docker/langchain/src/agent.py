@@ -1,5 +1,9 @@
 from langchain.agents import AgentType, initialize_agent
+from langchain.agents.structured_chat.prompt import SUFFIX as STRUCTURED_CHAT_SUFFIX
 from langchain.chat_models import ChatOpenAI
+from langchain.schema import AIMessage
+from langchain.schema import BaseMessage as BaseLangchainMessage
+from langchain.schema import HumanMessage
 from roster_sdk.adapters import get_roster_langchain_tools
 from roster_sdk.adapters.langchain import RosterLoggingHandler
 from roster_sdk.adapters.prompts import BASIC_TASK_PROMPT, CHAT_PREAMBLE
@@ -8,24 +12,31 @@ from roster_sdk.models.chat import ChatMessage
 from roster_sdk.models.resources.task import TaskAssignment
 
 
-def basic_chat_agent():
+def basic_chat_agent(**agent_kwargs):
     return initialize_agent(
         get_roster_langchain_tools(),
         ChatOpenAI(temperature=0),
         agent=AgentType.STRUCTURED_CHAT_ZERO_SHOT_REACT_DESCRIPTION,
         verbose=True,
+        agent_kwargs=agent_kwargs,
     )
 
 
 class LangchainAgent(BaseRosterAgent):
-    def __init__(self):
-        super().__init__()
-        # NOTE: sort of depends on the agent not having memory
-        self.agent = basic_chat_agent()
+    def _adapt_chat_message(self, chat: ChatMessage) -> BaseLangchainMessage:
+        if chat.sender == self.agent_name:
+            return AIMessage(content=chat.message)
+        else:
+            return HumanMessage(content=chat.message)
 
     async def chat(self, chat_history: list[ChatMessage]) -> str:
-        return self.agent.run(
-            CHAT_PREAMBLE + chat_history[-1].message, callbacks=[RosterLoggingHandler()]
+        memory = list(map(self._adapt_chat_message, chat_history[:-1]))
+        suffix = (
+            CHAT_PREAMBLE.format(agent_name=self.agent_name) + STRUCTURED_CHAT_SUFFIX
+        )
+        return basic_chat_agent(memory_prompts=memory, suffix=suffix).run(
+            chat_history[-1].message,
+            callbacks=[RosterLoggingHandler()],
         )
 
     async def execute_task(
@@ -37,7 +48,7 @@ class LangchainAgent(BaseRosterAgent):
             role_name=assignment.role_name,
             team_name=assignment.team_name,
         )
-        return self.agent.run(task_message, callbacks=[RosterLoggingHandler()])
+        return basic_chat_agent().run(task_message, callbacks=[RosterLoggingHandler()])
 
 
 agent = LangchainAgent()
