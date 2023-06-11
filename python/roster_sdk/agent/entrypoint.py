@@ -1,9 +1,10 @@
 import uvicorn
 from fastapi import FastAPI
+from roster_sdk.config import AgentConfig
+from roster_sdk.models.api.chat import ChatArgs
+from roster_sdk.models.api.task import ExecuteTaskArgs
 from roster_sdk.models.chat import ChatMessage
-from roster_sdk.models.resources.task import ExecuteTaskArgs, TaskAssignment, TaskSpec
 
-from ..config import AgentConfig
 from .interface import RosterAgentInterface
 
 
@@ -26,9 +27,9 @@ class Entrypoint:
             return True
 
         @self.app.post("/chat")
-        async def chat(chat_history: list[ChatMessage]) -> ChatMessage:
+        async def chat(args: ChatArgs) -> ChatMessage:
             """Respond to a prompt"""
-            response = await self.agent.chat(chat_history)
+            response = await self.agent.chat(args.messages, team_name=args.team)
             return ChatMessage(sender=self.config.roster_agent_name, message=response)
 
         @self.app.post("/tasks")

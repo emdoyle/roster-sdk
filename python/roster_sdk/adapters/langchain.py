@@ -1,4 +1,4 @@
-from functools import wraps
+from functools import partial, wraps
 
 from roster_sdk.agent.logs import get_roster_agent_logger
 from roster_sdk.client.agent import CollaborationInterface
@@ -51,30 +51,41 @@ def roster_base_tools(agent: str) -> list[StructuredTool]:
 # TODO: async tools
 
 
-def roster_collaboration_tools(agent: str) -> list[StructuredTool]:
+def roster_collaboration_tools(agent: str, team: str = "") -> list[StructuredTool]:
     collab_interface = CollaborationInterface.from_env(agent_name=agent)
+
+    def as_tool(fn):
+        if team:
+            # NOTE: This assumes that fn accepts 'team' as an argument!
+            return strfn(partial(fn, team=team))
+        return strfn(fn)
+
     return [
         StructuredTool.from_function(
-            strfn(collab_interface.get_role_context),
+            as_tool(collab_interface.get_role_context),
             description=role_context_description,
         ),
         StructuredTool.from_function(
-            strfn(collab_interface.get_team_context),
+            as_tool(collab_interface.get_team_context),
             description=team_context_description,
         ),
         StructuredTool.from_function(
-            strfn(collab_interface.ask_team_member),
+            as_tool(collab_interface.ask_team_member),
             description=ask_team_member_description,
         ),
         StructuredTool.from_function(
-            strfn(collab_interface.ask_manager), description=ask_manager_description
+            as_tool(collab_interface.ask_manager), description=ask_manager_description
         ),
     ]
 
 
-def get_roster_langchain_tools() -> list[StructuredTool]:
+def get_roster_langchain_tools(team: str = "") -> list[StructuredTool]:
     agent = AgentConfig.from_env().roster_agent_name
-    return [*roster_base_tools(agent), *roster_collaboration_tools(agent)]
+    tools = roster_collaboration_tools(agent, team)
+    if not team:
+        # Only provide context-free tools if no team provided
+        tools.extend(roster_base_tools(agent))
+    return tools
 
 
 class RosterLoggingHandler(BaseCallbackHandler):

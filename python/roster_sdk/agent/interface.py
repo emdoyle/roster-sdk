@@ -8,7 +8,7 @@ from roster_sdk.models.resources.task import TaskAssignment
 
 class RosterAgentInterface(ABC):
     @abstractmethod
-    async def chat(self, chat_history: list[ChatMessage]) -> str:
+    async def chat(self, chat_history: list[ChatMessage], team_name: str = "") -> str:
         """Respond to a prompt"""
 
     @abstractmethod
