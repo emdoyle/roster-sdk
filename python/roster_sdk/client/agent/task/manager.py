@@ -66,10 +66,16 @@ class TaskManager:
         assignment: TaskAssignment,
     ) -> None:
         if name in self.running_tasks:
-            raise ValueError(f"Task {name} is already running")
+            raise errors.TaskManagerException(f"Task {name} is already running")
         self.running_tasks[name] = asyncio.create_task(
             self._run_task(task_executor, name, description, assignment)
         )
+
+    def cancel_task(self, task: str) -> None:
+        if task not in self.running_tasks:
+            raise errors.TaskManagerException(f"Task {task} is not running")
+        self.running_tasks[task].cancel()
+        del self.running_tasks[task]
 
     def teardown(self):
         for task in self.running_tasks.values():

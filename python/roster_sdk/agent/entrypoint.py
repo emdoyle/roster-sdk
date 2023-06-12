@@ -1,10 +1,11 @@
 import uvicorn
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from roster_sdk.config import AgentConfig
 from roster_sdk.models.api.chat import ChatArgs
 from roster_sdk.models.api.task import ExecuteTaskArgs
 from roster_sdk.models.chat import ChatMessage
 
+from . import errors
 from .interface import RosterAgentInterface
 
 
@@ -35,9 +36,24 @@ class Entrypoint:
         @self.app.post("/tasks")
         async def execute_task(args: ExecuteTaskArgs) -> bool:
             """Execute a task on the agent"""
-            return await self.agent.ack_task(
-                args.task, args.description, args.assignment
-            )
+            try:
+                await self.agent.ack_task(args.task, args.description, args.assignment)
+                return True
+            except errors.RosterAgentTaskAlreadyExists as e:
+                raise HTTPException(status_code=409, detail=str(e))
+            except Exception as e:
+                raise HTTPException(status_code=500, detail=str(e))
+
+        @self.app.delete("/tasks/{task}")
+        async def cancel_task(task: str) -> bool:
+            """Cancel a task"""
+            try:
+                await self.agent.cancel_task(task)
+                return True
+            except errors.RosterAgentTaskNotFound as e:
+                raise HTTPException(status_code=404, detail=str(e))
+            except Exception as e:
+                raise HTTPException(status_code=500, detail=str(e))
 
     def run(self):
         if not self.config.is_valid:

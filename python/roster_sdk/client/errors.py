@@ -35,3 +35,10 @@ class TeamMemberNotInPeerGroup(RosterClientException):
         self, message="The requested team member is not in the agent's peer group."
     ):
         super().__init__(message)
+
+
+class TaskManagerException(Exception):
+    """Base class for all task management exceptions"""
+
+    def __init__(self, message):
+        self.message = message

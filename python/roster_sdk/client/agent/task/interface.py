@@ -27,9 +27,15 @@ class TaskInterface:
         result: str,
         error: str,
     ):
-        """Send task result to Roster"""
+        if result and not error:
+            status = "success"
+        elif error and not result:
+            status = "error"
+        else:
+            status = "unknown"
         updated_task_status = TaskStatus(
             name=task,
+            status=status,
             description=description,
             assignment=assignment,
             result=result,

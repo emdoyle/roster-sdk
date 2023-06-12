@@ -1,9 +1,12 @@
 from abc import ABC, abstractmethod
 
+from roster_sdk.client import errors as client_errors
 from roster_sdk.client.agent.task.manager import TaskManager
 from roster_sdk.config import AgentConfig
 from roster_sdk.models.chat import ChatMessage
 from roster_sdk.models.resources.task import TaskAssignment
+
+from . import errors
 
 
 class RosterAgentInterface(ABC):
@@ -12,10 +15,12 @@ class RosterAgentInterface(ABC):
         """Respond to a prompt"""
 
     @abstractmethod
-    async def ack_task(
-        self, name: str, description: str, assignment: TaskAssignment
-    ) -> bool:
+    async def ack_task(self, name: str, description: str, assignment: TaskAssignment):
         """Acknowledge and begin executing a task on the agent"""
+
+    @abstractmethod
+    async def cancel_task(self, task: str):
+        """Cancel a task"""
 
 
 class BaseRosterAgent(RosterAgentInterface, ABC):
@@ -23,11 +28,19 @@ class BaseRosterAgent(RosterAgentInterface, ABC):
         self.config = AgentConfig.from_env()
         self.task_manager = TaskManager.from_env(self.config.roster_agent_name)
 
-    async def ack_task(
-        self, name: str, description: str, assignment: TaskAssignment
-    ) -> bool:
-        self.task_manager.run_task(self.execute_task, name, description, assignment)
-        return True
+    async def ack_task(self, name: str, description: str, assignment: TaskAssignment):
+        try:
+            self.task_manager.run_task(self.execute_task, name, description, assignment)
+        except client_errors.TaskManagerException:
+            raise errors.RosterAgentTaskNotFound(
+                f"Failed to run task {name} on agent {assignment.agent_name}"
+            )
+
+    async def cancel_task(self, task: str):
+        try:
+            self.task_manager.cancel_task(task)
+        except client_errors.TaskManagerException:
+            raise errors.RosterAgentTaskAlreadyExists(f"Failed to cancel task {task}")
 
     @abstractmethod
     async def execute_task(
