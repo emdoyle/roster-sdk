@@ -38,7 +38,7 @@ class CollaborationInterface:
         return TeamContext.from_spec(self.agent_name, team_resource.spec)
 
     def ask_team_member(
-        self, team: str, member_role: str, question: str
+        self, member_role: str, question: str, team: str
     ) -> Result[ChatMessage]:
         try:
             team_resource = self.client.team.get(team)
@@ -58,11 +58,12 @@ class CollaborationInterface:
                 member.name,
                 history=[],
                 message=ChatMessage(sender=self.agent_name, message=question),
+                team=team,
             )
         except errors.RosterClientException:
             return "Failed to send message to team member."
 
-    def ask_manager(self, team: str, question: str) -> Result[ChatMessage]:
+    def ask_manager(self, question: str, team: str) -> Result[ChatMessage]:
         try:
             team_resource = self.client.team.get(team)
         except errors.RosterClientException:
@@ -76,6 +77,7 @@ class CollaborationInterface:
                 manager.name,
                 history=[],
                 message=ChatMessage(sender=self.agent_name, message=question),
+                team=team,
             )
         except errors.RosterClientException:
             return "Failed to send message to manager."

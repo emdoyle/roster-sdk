@@ -100,7 +100,11 @@ class RosterClient:
         self.post(config.ROSTER_API_STATUS_UPDATE_PATH, data=data)
 
     def chat_prompt_agent(
-        self, agent: str, history: list[ChatMessage], message: ChatMessage
+        self,
+        agent: str,
+        history: list[ChatMessage],
+        message: ChatMessage,
+        team: str = "",
     ) -> ChatMessage:
         try:
             response_data = self.post(
@@ -108,6 +112,7 @@ class RosterClient:
                 data={
                     "history": [_message.dict() for _message in history],
                     "message": message.dict(),
+                    "team": team,
                 },
             )
             return ChatMessage(**response_data)

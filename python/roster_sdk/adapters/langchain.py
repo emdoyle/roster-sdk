@@ -57,7 +57,7 @@ def roster_base_tools(agent: str) -> list[StructuredTool]:
     base_interface = BaseRosterInterface.from_env(agent_name=agent)
     return [
         StructuredTool.from_function(
-            strfn(base_interface.get_agent_context),
+            as_tool_fn(base_interface.get_agent_context),
             description=agent_context_description,
         ),
     ]
