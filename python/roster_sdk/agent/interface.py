@@ -11,7 +11,9 @@ from . import errors
 
 class RosterAgentInterface(ABC):
     @abstractmethod
-    async def chat(self, chat_history: list[ChatMessage], team_name: str = "") -> str:
+    async def chat(
+        self, identity: str, team: str, role: str, chat_history: list[ChatMessage]
+    ) -> str:
         """Respond to a prompt"""
 
     @abstractmethod

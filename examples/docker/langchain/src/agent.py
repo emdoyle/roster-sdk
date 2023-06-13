@@ -1,7 +1,6 @@
 from langchain.agents import AgentType, initialize_agent
 from langchain.agents.structured_chat.prompt import SUFFIX as STRUCTURED_CHAT_SUFFIX
 from langchain.chat_models import ChatOpenAI
-from langchain.schema import AIMessage
 from langchain.schema import BaseMessage as BaseLangchainMessage
 from langchain.schema import HumanMessage
 from roster_sdk.adapters import get_roster_langchain_tools
@@ -23,21 +22,32 @@ def basic_chat_agent(team: str = "", **agent_kwargs):
 
 
 class LangchainAgent(BaseRosterAgent):
-    def _adapt_chat_message(self, chat: ChatMessage) -> BaseLangchainMessage:
-        if chat.sender == self.agent_name:
-            return AIMessage(content=chat.message)
-        else:
-            return HumanMessage(content=chat.message)
+    @classmethod
+    def _ai_message(cls, message: ChatMessage) -> BaseLangchainMessage:
+        class _AIMessage(BaseLangchainMessage):
+            example: bool = False
 
-    async def chat(self, chat_history: list[ChatMessage], team_name: str = "") -> str:
-        memory = list(map(self._adapt_chat_message, chat_history[:-1]))
+            @property
+            def type(self) -> str:
+                """Type of the message, used for serialization."""
+                return message.sender
+
+        return _AIMessage(content=message.message)
+
+    async def chat(
+        self, identity: str, team: str, role: str, chat_history: list[ChatMessage]
+    ) -> str:
+        memory = [
+            self._ai_message(message)
+            if message.sender == identity
+            else HumanMessage(content=message.message)
+            for message in chat_history[:-1]
+        ]
         suffix = (
-            get_chat_preamble(agent_name=self.agent_name, team_name=team_name)
+            get_chat_preamble(agent_name=identity, team_name=team, role_name=role)
             + STRUCTURED_CHAT_SUFFIX
         )
-        return basic_chat_agent(
-            team=team_name, memory_prompts=memory, suffix=suffix
-        ).run(
+        return basic_chat_agent(team=team, memory_prompts=memory, suffix=suffix).run(
             chat_history[-1].message,
             callbacks=[RosterLoggingHandler()],
         )
@@ -49,6 +59,7 @@ class LangchainAgent(BaseRosterAgent):
         # (caused confusion in GPT-3.5 testing, and is pretty much metadata anyway)
         task_message = get_task_prompt(
             description=description,
+            agent_name=assignment.identity_name,
             role_name=assignment.role_name,
             team_name=assignment.team_name,
         )
