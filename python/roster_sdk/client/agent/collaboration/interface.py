@@ -19,9 +19,9 @@ class CollaborationInterface:
         self.role = role
         self.client = client or RosterClient.from_env()
 
-    def get_role_context(self) -> Result[RoleContext]:
+    async def get_role_context(self) -> Result[RoleContext]:
         try:
-            team_resource = self.client.team.get(self.team)
+            team_resource = await self.client.team.get(self.team)
         except errors.RosterClientException:
             return "Team not found."
         role = team_resource.get_role(self.role)
@@ -31,9 +31,9 @@ class CollaborationInterface:
             team_name=self.team, role_name=self.role, role=role
         )
 
-    def get_team_context(self) -> Result[TeamContext]:
+    async def get_team_context(self) -> Result[TeamContext]:
         try:
-            team_resource = self.client.team.get(self.team)
+            team_resource = await self.client.team.get(self.team)
         except errors.RosterClientException:
             return "Team not found."
         try:
@@ -43,9 +43,11 @@ class CollaborationInterface:
         except errors.TeamMemberNotFound:
             return "Role not found."
 
-    def ask_team_member(self, member_role: str, question: str) -> Result[ChatMessage]:
+    async def ask_team_member(
+        self, member_role: str, question: str
+    ) -> Result[ChatMessage]:
         try:
-            team_resource = self.client.team.get(self.team)
+            team_resource = await self.client.team.get(self.team)
         except errors.RosterClientException:
             return "Team not found."
 
@@ -58,7 +60,7 @@ class CollaborationInterface:
             return "Agent not found."
 
         try:
-            return self.client.chat_prompt_agent(
+            return await self.client.chat_prompt_agent(
                 role=member_role,
                 team=self.team,
                 history=[],
@@ -67,9 +69,9 @@ class CollaborationInterface:
         except errors.RosterClientException:
             return "Failed to send message to team member."
 
-    def ask_manager(self, question: str) -> Result[ChatMessage]:
+    async def ask_manager(self, question: str) -> Result[ChatMessage]:
         try:
-            team_resource = self.client.team.get(self.team)
+            team_resource = await self.client.team.get(self.team)
         except errors.RosterClientException:
             return "Team not found."
         manager = team_resource.get_role_manager(self.role)
@@ -81,7 +83,7 @@ class CollaborationInterface:
             return "Agent not found."
 
         try:
-            return self.client.chat_prompt_agent(
+            return await self.client.chat_prompt_agent(
                 role=manager,
                 team=self.team,
                 history=[],

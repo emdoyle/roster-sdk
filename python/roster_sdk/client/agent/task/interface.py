@@ -19,7 +19,7 @@ class TaskInterface:
     def from_env(cls, agent_name: str) -> "TaskInterface":
         return cls(agent_name, RosterClient.from_env())
 
-    def finish_task(
+    async def finish_task(
         self,
         task: str,
         description: str,
@@ -48,7 +48,7 @@ class TaskInterface:
             "name": task,
             "status": updated_task_status.dict(),
         }
-        self.client.status_update(status_update_event)
+        await self.client.status_update(status_update_event)
 
     async def execute_subtask(self, task: str, description: str) -> str:
         """Asynchronously execute a subtask and receive its result"""

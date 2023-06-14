@@ -1,6 +1,3 @@
-import inspect
-from functools import wraps
-
 from roster_sdk.agent.logs import get_roster_agent_logger
 from roster_sdk.client.agent import CollaborationInterface
 
@@ -28,23 +25,36 @@ Ask a question to your manager.
 # TODO: async tools
 
 
+def async_structured_tool(
+    func,
+    description: str,
+    **kwargs,
+) -> StructuredTool:
+    return StructuredTool.from_function(
+        func,
+        coroutine=func,
+        description=description,
+        **kwargs,
+    )
+
+
 def roster_collaboration_tools(team: str, role: str) -> list[StructuredTool]:
     collab_interface = CollaborationInterface(team=team, role=role)
 
     return [
-        StructuredTool.from_function(
+        async_structured_tool(
             collab_interface.get_role_context,
             description=role_context_description,
         ),
-        StructuredTool.from_function(
+        async_structured_tool(
             collab_interface.get_team_context,
             description=team_context_description,
         ),
-        StructuredTool.from_function(
+        async_structured_tool(
             collab_interface.ask_team_member,
             description=ask_team_member_description,
         ),
-        StructuredTool.from_function(
+        async_structured_tool(
             collab_interface.ask_manager,
             description=ask_manager_description,
         ),

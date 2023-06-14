@@ -1,7 +1,7 @@
 import asyncio
+import logging
 from typing import Callable, Coroutine
 
-from roster_sdk.agent.logs import get_roster_agent_logger
 from roster_sdk.client import errors
 from roster_sdk.models.resources.task import TaskAssignment
 
@@ -9,8 +9,7 @@ from .interface import TaskInterface
 
 TaskExecutor = Callable[..., Coroutine[None, None, str]]
 
-# Should SDK code use the Agent logger?
-logger = get_roster_agent_logger()
+logger = logging.getLogger(__name__)
 
 
 class TaskManager:
@@ -22,7 +21,7 @@ class TaskManager:
     def from_env(cls, agent_name: str) -> "TaskManager":
         return cls(TaskInterface.from_env(agent_name))
 
-    def _finish_task(
+    async def _finish_task(
         self,
         task: str,
         description: str,
@@ -31,7 +30,7 @@ class TaskManager:
         error: str,
     ):
         try:
-            self.task_interface.finish_task(
+            await self.task_interface.finish_task(
                 task, description, assignment, result=result, error=error
             )
         except errors.RosterClientException as e:
@@ -48,13 +47,17 @@ class TaskManager:
         try:
             result = await task_executor(name, description, assignment)
         except asyncio.CancelledError:
-            self._finish_task(
+            await self._finish_task(
                 name, description, assignment, result="", error="Task cancelled"
             )
         except Exception as e:
-            self._finish_task(name, description, assignment, result="", error=str(e))
+            await self._finish_task(
+                name, description, assignment, result="", error=str(e)
+            )
         else:
-            self._finish_task(name, description, assignment, result=result, error="")
+            await self._finish_task(
+                name, description, assignment, result=result, error=""
+            )
         finally:
             del self.running_tasks[name]
 

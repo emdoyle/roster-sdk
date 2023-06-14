@@ -1,8 +1,8 @@
 from functools import cached_property
 from typing import Generic, Type, TypeVar
 
+import aiohttp
 import pydantic
-import requests
 from roster_sdk import config
 from roster_sdk.client import errors
 from roster_sdk.models.chat import ChatMessage
@@ -31,32 +31,32 @@ class CRUDResource(Generic[ResourceType]):
                 f"Expected {self.resource_type} but got {data}"
             )
 
-    def create(self, data: dict) -> ResourceType:
-        return self._deserialize(self.client.post(self.endpoint, data=data))
+    async def create(self, data: dict) -> ResourceType:
+        return self._deserialize(await self.client.post(self.endpoint, data=data))
 
-    def list(self) -> list[ResourceType]:
-        return list(map(self._deserialize, self.client.get(self.endpoint)))
+    async def list(self) -> list[ResourceType]:
+        return list(map(self._deserialize, await self.client.get(self.endpoint)))
 
-    def get(self, name: str) -> ResourceType:
+    async def get(self, name: str) -> ResourceType:
         if not name:
             raise errors.RosterClientException("Cannot get resource with empty name.")
-        return self._deserialize(self.client.get(f"{self.endpoint}/{name}"))
+        return self._deserialize(await self.client.get(f"{self.endpoint}/{name}"))
 
-    def update(self, name: str, data: dict) -> ResourceType:
+    async def update(self, name: str, data: dict) -> ResourceType:
         if not name:
             raise errors.RosterClientException(
                 "Cannot update resource with empty name."
             )
         return self._deserialize(
-            self.client.patch(f"{self.endpoint}/{name}", data=data)
+            await self.client.patch(f"{self.endpoint}/{name}", data=data)
         )
 
-    def delete(self, name: str) -> None:
+    async def delete(self, name: str) -> None:
         if not name:
             raise errors.RosterClientException(
                 "Cannot delete resource with empty name."
             )
-        self.client.delete(f"{self.endpoint}/{name}")
+        await self.client.delete(f"{self.endpoint}/{name}")
 
 
 class RosterClient:
@@ -67,39 +67,40 @@ class RosterClient:
     def from_env(cls) -> "RosterClient":
         return cls(roster_api_url=config.ROSTER_API_URL)
 
-    def _request(
-        self, method: str, endpoint: str, data: dict = None
-    ) -> requests.Response:
-        try:
-            response = requests.request(
-                method=method, url=f"{self.roster_api_url}{endpoint}", json=data
-            )
-        except requests.exceptions.ConnectionError:
-            raise errors.RosterConnectionError()
-        if response.status_code == 404:
-            raise errors.ResourceNotFound()
-        elif response.status_code != 200:
-            raise errors.RosterClientException(
-                f"Roster API returned {response.status_code}"
-            )
-        return response
+    async def _request(self, method: str, endpoint: str, data: dict = None) -> dict:
+        async with aiohttp.ClientSession() as session:
+            try:
+                async with session.request(
+                    method=method,
+                    url=f"{self.roster_api_url}{endpoint}",
+                    json=data,
+                ) as response:
+                    if response.status == 404:
+                        raise errors.ResourceNotFound()
+                    elif response.status != 200:
+                        raise errors.RosterClientException(
+                            f"Roster API returned {response.status}"
+                        )
+                    return await response.json()
+            except aiohttp.ClientConnectionError:
+                raise errors.RosterConnectionError()
 
-    def get(self, endpoint: str) -> dict:
-        return self._request("GET", endpoint).json()
+    async def get(self, endpoint: str) -> dict:
+        return await self._request("GET", endpoint)
 
-    def post(self, endpoint: str, data: dict) -> dict:
-        return self._request("POST", endpoint, data=data).json()
+    async def post(self, endpoint: str, data: dict) -> dict:
+        return await self._request("POST", endpoint, data=data)
 
-    def patch(self, endpoint: str, data: dict) -> dict:
-        return self._request("PATCH", endpoint, data=data).json()
+    async def patch(self, endpoint: str, data: dict) -> dict:
+        return await self._request("PATCH", endpoint, data=data)
 
-    def delete(self, endpoint: str) -> None:
-        self._request("DELETE", endpoint)
+    async def delete(self, endpoint: str) -> None:
+        await self._request("DELETE", endpoint)
 
-    def status_update(self, data: dict) -> None:
-        self.post(config.ROSTER_API_STATUS_UPDATE_PATH, data=data)
+    async def status_update(self, data: dict) -> None:
+        await self.post(config.ROSTER_API_STATUS_UPDATE_PATH, data=data)
 
-    def chat_prompt_agent(
+    async def chat_prompt_agent(
         self,
         role: str,
         team: str,
@@ -107,7 +108,7 @@ class RosterClient:
         message: ChatMessage,
     ) -> ChatMessage:
         try:
-            response_data = self.post(
+            response_data = await self.post(
                 f"{config.ROSTER_API_COMMANDS_PATH}/agent-chat",
                 data={
                     "team": team,
