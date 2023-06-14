@@ -11,9 +11,9 @@ from roster_sdk.models.chat import ChatMessage
 from roster_sdk.models.resources.task import TaskAssignment
 
 
-def basic_chat_agent(team: str = "", **agent_kwargs):
+def basic_chat_agent(team: str, role: str, **agent_kwargs):
     return initialize_agent(
-        get_roster_langchain_tools(team=team),
+        get_roster_langchain_tools(team=team, role=role),
         ChatOpenAI(temperature=0),
         agent=AgentType.STRUCTURED_CHAT_ZERO_SHOT_REACT_DESCRIPTION,
         verbose=True,

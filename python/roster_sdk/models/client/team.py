@@ -1,8 +1,9 @@
 from typing import Optional
 
 from pydantic import BaseModel, Field
+from roster_sdk.client import errors
+from roster_sdk.models.resources.team import TeamResource
 
-from ..resources.team import TeamSpec
 from .role import RoleContext
 
 # Context is from the perspective of a specific Agent,
@@ -36,18 +37,36 @@ class TeamContext(BaseModel):
         }
 
     @classmethod
-    def from_spec(cls, agent: str, spec: TeamSpec) -> "TeamContext":
-        team = spec.name
-        agent_role = spec.get_agent_role(agent)
-        if agent_role is None:
-            raise ValueError(f"Agent {agent} is not a member of team {team}.")
-        peers = spec.get_agent_peers(agent)
-        manager = spec.get_agent_manager(agent)
+    def from_resource(
+        cls, role_name: str, team_name: str, team_resource: TeamResource
+    ) -> "TeamContext":
+        agent_role = team_resource.get_role(role_name)
+        if not agent_role:
+            raise errors.TeamMemberNotFound()
+        agent = RoleContext.from_role(
+            team_name=team_name, role_name=role_name, role=agent_role
+        )
+        peers = [
+            RoleContext.from_role(
+                team_name=team_name,
+                role_name=role_name,
+                role=team_resource.get_role(peer),
+            )
+            for peer in team_resource.get_role_peers(role_name)
+        ]
+        manager_role = team_resource.get_role_manager(role_name)
+        manager = (
+            RoleContext.from_role(
+                team_name=team_name,
+                role_name=role_name,
+                role=team_resource.get_role(manager_role),
+            )
+            if manager_role
+            else None
+        )
         return cls(
-            name=team,
-            role=RoleContext.from_spec(team, agent_role),
-            peers=[RoleContext.from_spec(team, peer) for peer in peers],
-            manager=RoleContext.from_spec(team, manager)
-            if manager is not None
-            else None,
+            name=team_name,
+            role=agent,
+            peers=peers,
+            manager=manager,
         )

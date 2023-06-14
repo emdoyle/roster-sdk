@@ -1,5 +1,5 @@
 from pydantic import BaseModel, Field
-from roster_sdk.models.resources.role import RoleSpec
+from roster_sdk.models.resources.team import Role
 
 # Context is from the perspective of a specific Agent,
 # in contrast to Resource which is from the perspective of the Roster API.
@@ -23,9 +23,9 @@ class RoleContext(BaseModel):
         }
 
     @classmethod
-    def from_spec(cls, team: str, spec: RoleSpec) -> "RoleContext":
+    def from_role(cls, team_name: str, role_name: str, role: Role) -> "RoleContext":
         return cls(
-            team=team,
-            role=spec.name,
-            description=spec.description,
+            team=team_name,
+            role=role_name,
+            description=role.description,
         )

@@ -101,18 +101,19 @@ class RosterClient:
 
     def chat_prompt_agent(
         self,
-        agent: str,
+        role: str,
+        team: str,
         history: list[ChatMessage],
         message: ChatMessage,
-        team: str = "",
     ) -> ChatMessage:
         try:
             response_data = self.post(
-                f"{config.ROSTER_API_COMMANDS_PATH}/agent-chat/{agent}",
+                f"{config.ROSTER_API_COMMANDS_PATH}/agent-chat",
                 data={
+                    "team": team,
+                    "role": role,
                     "history": [_message.dict() for _message in history],
                     "message": message.dict(),
-                    "team": team,
                 },
             )
             return ChatMessage(**response_data)

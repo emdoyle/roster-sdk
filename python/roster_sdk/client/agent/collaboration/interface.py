@@ -1,4 +1,4 @@
-from typing import TypeVar, Union
+from typing import Optional, TypeVar, Union
 
 from roster_sdk.client import errors
 from roster_sdk.client.base import RosterClient
@@ -14,70 +14,78 @@ Result = Union[str, T]
 
 
 class CollaborationInterface:
-    def __init__(self, agent_name: str, client: RosterClient):
-        self.agent_name = agent_name
-        self.client = client
+    def __init__(self, team: str, role: str, client: Optional[RosterClient] = None):
+        self.team = team
+        self.role = role
+        self.client = client or RosterClient.from_env()
 
-    @classmethod
-    def from_env(cls, agent_name: str) -> "CollaborationInterface":
-        return cls(agent_name, RosterClient.from_env())
-
-    def get_role_context(self, team: str) -> Result[RoleContext]:
+    def get_role_context(self) -> Result[RoleContext]:
         try:
-            team_resource = self.client.team.get(team)
+            team_resource = self.client.team.get(self.team)
         except errors.RosterClientException:
             return "Team not found."
-        role_spec = team_resource.get_agent_role(self.agent_name)
-        return RoleContext.from_spec(team, role_spec)
+        role = team_resource.get_role(self.role)
+        if role is None:
+            return "Role not found."
+        return RoleContext.from_role(
+            team_name=self.team, role_name=self.role, role=role
+        )
 
-    def get_team_context(self, team: str) -> Result[TeamContext]:
+    def get_team_context(self) -> Result[TeamContext]:
         try:
-            team_resource = self.client.team.get(team)
+            team_resource = self.client.team.get(self.team)
         except errors.RosterClientException:
             return "Team not found."
-        return TeamContext.from_spec(self.agent_name, team_resource.spec)
-
-    def ask_team_member(
-        self, member_role: str, question: str, team: str
-    ) -> Result[ChatMessage]:
         try:
-            team_resource = self.client.team.get(team)
+            return TeamContext.from_resource(
+                role_name=self.role, team_name=self.team, team_resource=team_resource
+            )
+        except errors.TeamMemberNotFound:
+            return "Role not found."
+
+    def ask_team_member(self, member_role: str, question: str) -> Result[ChatMessage]:
+        try:
+            team_resource = self.client.team.get(self.team)
         except errors.RosterClientException:
             return "Team not found."
-        # Check if member_role refers to a role on the team.
-        member = team_resource.get_member_by_role(member_role)
-        if member is None:
-            return "Team member not found."
+
         # Check if the member_role is in the agent's peer group.
-        agent_role = team_resource.get_agent_role(self.agent_name)
-        if not team_resource.roles_share_peer_group(agent_role.name, member_role):
+        if not team_resource.roles_share_peer_group(self.role, member_role):
             return "Team member not in peer group."
+
+        agent_identity = team_resource.get_member_by_role(self.role)
+        if agent_identity is None:
+            return "Agent not found."
 
         try:
             return self.client.chat_prompt_agent(
-                member.name,
+                role=member_role,
+                team=self.team,
                 history=[],
-                message=ChatMessage(sender=self.agent_name, message=question),
-                team=team,
+                message=ChatMessage(sender=agent_identity.identity, message=question),
             )
         except errors.RosterClientException:
             return "Failed to send message to team member."
 
-    def ask_manager(self, question: str, team: str) -> Result[ChatMessage]:
+    def ask_manager(self, question: str) -> Result[ChatMessage]:
         try:
-            team_resource = self.client.team.get(team)
+            team_resource = self.client.team.get(self.team)
         except errors.RosterClientException:
             return "Team not found."
-        manager = team_resource.get_agent_manager(self.agent_name)
+        manager = team_resource.get_role_manager(self.role)
         if manager is None:
             return "Could not find manager for agent."
 
+        agent_identity = team_resource.get_member_by_role(self.role)
+        if agent_identity is None:
+            return "Agent not found."
+
         try:
             return self.client.chat_prompt_agent(
-                manager.name,
+                role=manager,
+                team=self.team,
                 history=[],
-                message=ChatMessage(sender=self.agent_name, message=question),
-                team=team,
+                message=ChatMessage(sender=agent_identity.identity, message=question),
             )
         except errors.RosterClientException:
             return "Failed to send message to manager."
