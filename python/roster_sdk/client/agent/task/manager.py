@@ -47,9 +47,7 @@ class TaskManager:
         try:
             result = await task_executor(name, description, assignment)
         except asyncio.CancelledError:
-            await self._finish_task(
-                name, description, assignment, result="", error="Task cancelled"
-            )
+            logger.info("Cancelled task %s", name)
         except Exception as e:
             await self._finish_task(
                 name, description, assignment, result="", error=str(e)
@@ -78,7 +76,6 @@ class TaskManager:
         if task not in self.running_tasks:
             raise errors.TaskManagerException(f"Task {task} is not running")
         self.running_tasks[task].cancel()
-        del self.running_tasks[task]
 
     def teardown(self):
         for task in self.running_tasks.values():

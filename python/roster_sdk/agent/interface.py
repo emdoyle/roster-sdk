@@ -42,7 +42,7 @@ class BaseRosterAgent(RosterAgentInterface, ABC):
         try:
             self.task_manager.cancel_task(task)
         except client_errors.TaskManagerException:
-            raise errors.RosterAgentTaskAlreadyExists(f"Failed to cancel task {task}")
+            raise errors.RosterAgentTaskException(f"Failed to cancel task {task}")
 
     @abstractmethod
     async def execute_task(

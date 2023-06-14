@@ -11,10 +11,11 @@ Figure out more about your current role on your team.
 
 team_context_description = """
 Figure out who your teammates are and who your manager is.
+Also displays role context for all members of your team.
 """
 
 ask_team_member_description = """
-Ask a question to a teammate. Use the name of their role on the team.
+Ask a question to a teammate.
 """
 
 ask_manager_description = """

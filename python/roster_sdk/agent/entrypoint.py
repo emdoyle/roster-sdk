@@ -54,7 +54,7 @@ class Entrypoint:
             try:
                 await self.agent.cancel_task(task)
                 return True
-            except errors.RosterAgentTaskNotFound as e:
+            except errors.RosterAgentTaskException as e:
                 raise HTTPException(status_code=404, detail=str(e))
             except Exception as e:
                 raise HTTPException(status_code=500, detail=str(e))
