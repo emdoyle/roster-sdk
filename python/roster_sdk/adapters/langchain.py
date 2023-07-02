@@ -1,8 +1,8 @@
-from roster_sdk.agent.logs import get_roster_agent_logger
+from roster_sdk.agent.logs import get_logger, get_roster_activity_logger
 from roster_sdk.client.agent import CollaborationInterface
 
-from langchain.callbacks.base import BaseCallbackHandler
-from langchain.schema import LLMResult
+from langchain.callbacks.base import AsyncCallbackHandler
+from langchain.schema import AgentAction, AgentFinish
 from langchain.tools import StructuredTool
 
 role_context_description = """
@@ -21,9 +21,6 @@ Ask a question to a teammate.
 ask_manager_description = """
 Ask a question to your manager.
 """
-
-
-# TODO: async tools
 
 
 def async_structured_tool(
@@ -67,27 +64,50 @@ def get_roster_langchain_tools(team: str, role: str) -> list[StructuredTool]:
     return roster_collaboration_tools(team=team, role=role)
 
 
-class RosterLoggingHandler(BaseCallbackHandler):
-    def on_llm_start(
+# It seems that langchain assumes the callback handler
+# must be async if the agent is being run async
+class RosterLoggingHandler(AsyncCallbackHandler):
+    async def on_llm_start(
         self,
-        serialized: dict,
-        prompts: list[str],
+        serialized,
+        prompts,
+        *,
+        run_id,
+        parent_run_id=None,
         **kwargs,
     ) -> None:
-        logger = get_roster_agent_logger()
-        logger.info("[PROMPT LLM]")
-        logger.info("\n".join(prompts))
-        logger.info("[END PROMPT]")
+        logger = get_logger()
+        logger.debug(f"[LLM START] Prompts: {prompts}")
 
-    def on_llm_end(self, response: LLMResult, **kwargs) -> None:
-        logger = get_roster_agent_logger()
-        logger.info("[RESPONSE LLM]")
-        logger.info(
-            "\n".join(
-                [
-                    " ".join(map(lambda gen: gen.text, result))
-                    for result in response.generations
-                ]
-            )
-        )
-        logger.info("[END RESPONSE]")
+    async def on_llm_end(
+        self,
+        response,
+        *,
+        run_id,
+        parent_run_id=None,
+        **kwargs,
+    ) -> None:
+        logger = get_logger()
+        logger.debug(f"[LLM END] Response: {response}")
+
+    async def on_agent_action(
+        self,
+        action: AgentAction,
+        *,
+        run_id,
+        parent_run_id=None,
+        **kwargs,
+    ) -> None:
+        logger = get_roster_activity_logger()
+        logger.action(action.log)
+
+    async def on_agent_finish(
+        self,
+        finish: AgentFinish,
+        *,
+        run_id,
+        parent_run_id=None,
+        **kwargs,
+    ):
+        logger = get_roster_activity_logger()
+        logger.action(f"{finish.log}\n{finish.return_values}")
