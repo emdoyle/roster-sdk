@@ -10,6 +10,7 @@ from .interface import TaskInterface
 TaskExecutor = Callable[..., Coroutine[None, None, str]]
 
 logger = logging.getLogger(__name__)
+logger.setLevel(logging.DEBUG)
 
 
 class TaskManager:
@@ -49,6 +50,7 @@ class TaskManager:
         except asyncio.CancelledError:
             logger.info("Cancelled task %s", name)
         except Exception as e:
+            logger.debug("(task-manager) Task %s failed: %s", name, e)
             await self._finish_task(
                 name, description, assignment, result="", error=str(e)
             )

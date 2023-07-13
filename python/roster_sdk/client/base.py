@@ -77,7 +77,7 @@ class RosterClient:
                     _, execution_ctx = activity_context
                     headers = {
                         EXECUTION_ID_HEADER: execution_ctx.execution_id,
-                        EXECUTION_TYPE_HEADER: execution_ctx.execution_type,
+                        EXECUTION_TYPE_HEADER: str(execution_ctx.execution_type),
                     }
                 else:
                     headers = None
