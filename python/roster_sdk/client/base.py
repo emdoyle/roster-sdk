@@ -4,7 +4,9 @@ from typing import Generic, Type, TypeVar
 import aiohttp
 import pydantic
 from roster_sdk import config
+from roster_sdk.agent.context import get_agent_activity_context
 from roster_sdk.client import errors
+from roster_sdk.constants import EXECUTION_ID_HEADER, EXECUTION_TYPE_HEADER
 from roster_sdk.models.chat import ChatMessage
 from roster_sdk.models.resources.agent import AgentResource
 from roster_sdk.models.resources.role import RoleResource
@@ -70,10 +72,20 @@ class RosterClient:
     async def _request(self, method: str, endpoint: str, data: dict = None) -> dict:
         async with aiohttp.ClientSession() as session:
             try:
+                activity_context = get_agent_activity_context()
+                if activity_context:
+                    _, execution_ctx = activity_context
+                    headers = {
+                        EXECUTION_ID_HEADER: execution_ctx.execution_id,
+                        EXECUTION_TYPE_HEADER: execution_ctx.execution_type,
+                    }
+                else:
+                    headers = None
                 async with session.request(
                     method=method,
                     url=f"{self.roster_api_url}{endpoint}",
                     json=data,
+                    headers=headers,
                 ) as response:
                     if response.status == 404:
                         raise errors.ResourceNotFound()

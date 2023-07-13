@@ -8,6 +8,7 @@ from roster_sdk.models.api.activity import ActivityEvent, ExecutionType
 from roster_sdk.models.api.chat import ChatArgs, ChatResponse
 from roster_sdk.models.api.task import ExecuteTaskArgs
 
+from ..constants import EXECUTION_ID_HEADER, EXECUTION_TYPE_HEADER
 from . import errors
 from .context import set_agent_activity_context
 from .interface import RosterAgentInterface
@@ -36,15 +37,26 @@ class Entrypoint:
             return True
 
         @self.app.post("/chat")
-        async def chat(args: ChatArgs) -> ChatResponse:
+        async def chat(request: Request, args: ChatArgs) -> ChatResponse:
             """Respond to a prompt"""
-            set_agent_activity_context(
-                execution_id="chat",
-                execution_type=ExecutionType.CHAT,
-                identity=args.identity,
-                team=args.team,
-                role=args.role,
-            )
+            execution_id = request.headers.get(EXECUTION_ID_HEADER)
+            execution_type = request.headers.get(EXECUTION_TYPE_HEADER)
+            if execution_id:
+                try:
+                    execution_type = (
+                        ExecutionType(execution_type)
+                        if execution_type
+                        else ExecutionType.TASK
+                    )
+                except ValueError:
+                    execution_type = ExecutionType.TASK
+                set_agent_activity_context(
+                    execution_id=execution_id,
+                    execution_type=execution_type,
+                    identity=args.identity,
+                    team=args.team,
+                    role=args.role,
+                )
             response = await self.agent.chat(
                 identity=args.identity,
                 team=args.team,
