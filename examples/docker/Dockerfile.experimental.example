@@ -1,0 +1,21 @@
+# Must be built from the root of the repository
+FROM python:3.10
+ENV PYTHONUNBUFFERED=1
+
+WORKDIR /app
+
+ENV EXAMPLE_DIR=examples/docker/experimental/
+
+RUN pip install poetry
+
+COPY $EXAMPLE_DIR/poetry.lock $EXAMPLE_DIR/pyproject.toml /app/
+
+COPY ./python /roster-agent
+
+RUN poetry add /roster-agent
+
+RUN poetry install
+
+COPY $EXAMPLE_DIR /app
+
+CMD ["poetry", "run", "roster-agent", "src.agent:agent"]

@@ -1,0 +1,16 @@
+[tool.poetry]
+name = "experimental-roster-agent"
+version = "0.1.0"
+description = "Experimental Agent Docker Image example for Roster"
+authors = ["Evan Doyle <evanmdoyle@gmail.com>"]
+
+[tool.poetry.dependencies]
+python = "^3.10"
+openai = "^0.27.6"
+guidance = "^0.0.64"
+tree-of-thoughts-llm = { git = "https://github.com/emdoyle/tree-of-thought-llm.git", branch = "master" }
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
