@@ -92,8 +92,10 @@ class TeamSpec(BaseModel):
         peers = []
         # Concatenate all roles in the peer groups that contain the role
         for peer_group in self.layout.peer_groups.values():
+            peer_group = set(peer_group)
             if role_name in peer_group:
-                peers.extend(peer_group)
+                # Exclude the role itself from list of peers
+                peers.extend(peer_group - {role_name})
         return peers
 
     def get_role_manager(self, role_name: str) -> Optional[str]:

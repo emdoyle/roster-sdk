@@ -49,7 +49,7 @@ class TeamContext(BaseModel):
         peers = [
             RoleContext.from_role(
                 team_name=team_name,
-                role_name=role_name,
+                role_name=peer,
                 role=team_resource.get_role(peer),
             )
             for peer in team_resource.get_role_peers(role_name)
@@ -58,7 +58,7 @@ class TeamContext(BaseModel):
         manager = (
             RoleContext.from_role(
                 team_name=team_name,
-                role_name=role_name,
+                role_name=manager_role,
                 role=team_resource.get_role(manager_role),
             )
             if manager_role

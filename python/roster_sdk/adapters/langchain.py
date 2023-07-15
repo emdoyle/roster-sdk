@@ -6,7 +6,7 @@ from langchain.schema import AgentAction, AgentFinish
 from langchain.tools import StructuredTool
 
 role_context_description = """
-Figure out more about your current role on your team.
+Get details about your current role on your team.
 """
 
 team_context_description = """
@@ -15,7 +15,7 @@ Also displays role context for all members of your team.
 """
 
 ask_team_member_description = """
-Ask a question to a teammate.
+Ask a question to a teammate using the name of their role.
 """
 
 ask_manager_description = """
@@ -52,10 +52,10 @@ def roster_collaboration_tools(team: str, role: str) -> list[StructuredTool]:
             collab_interface.ask_team_member,
             description=ask_team_member_description,
         ),
-        async_structured_tool(
-            collab_interface.ask_manager,
-            description=ask_manager_description,
-        ),
+        # async_structured_tool(
+        #     collab_interface.ask_manager,
+        #     description=ask_manager_description,
+        # ),
     ]
 
 
@@ -101,6 +101,18 @@ class RosterLoggingHandler(AsyncCallbackHandler):
         logger = get_roster_activity_logger()
         logger.action(action.log)
 
+    async def on_tool_end(
+        self,
+        output: str,
+        *,
+        run_id,
+        parent_run_id=None,
+        tags=None,
+        **kwargs,
+    ) -> None:
+        logger = get_roster_activity_logger()
+        logger.action(f"Tool Output: {output}")
+
     async def on_agent_finish(
         self,
         finish: AgentFinish,
@@ -110,4 +122,4 @@ class RosterLoggingHandler(AsyncCallbackHandler):
         **kwargs,
     ):
         logger = get_roster_activity_logger()
-        logger.action(f"{finish.log}\n{finish.return_values}")
+        logger.action(finish.log)
