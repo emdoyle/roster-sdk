@@ -45,17 +45,9 @@ def roster_collaboration_tools(team: str, role: str) -> list[StructuredTool]:
             description=role_context_description,
         ),
         async_structured_tool(
-            collab_interface.get_team_context,
-            description=team_context_description,
-        ),
-        async_structured_tool(
             collab_interface.ask_team_member,
             description=ask_team_member_description,
         ),
-        # async_structured_tool(
-        #     collab_interface.ask_manager,
-        #     description=ask_manager_description,
-        # ),
     ]
 
 

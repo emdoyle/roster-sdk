@@ -5,50 +5,34 @@ from roster_sdk.models.base import RosterResource
 
 
 class Role(BaseModel):
+    name: str = Field(description="A name to identify the role.")
     description: str = Field(description="A description of the role.")
 
     class Config:
         validate_assignment = True
         schema_extra = {
             "example": {
+                "name": "RoleName",
                 "description": "A description of the role.",
             }
         }
 
 
 class Layout(BaseModel):
-    roles: dict[str, Role] = Field(
-        default_factory=dict, description="The roles in the layout."
-    )
-    peer_groups: dict[str, list[str]] = Field(
-        default_factory=dict, description="The peer groups in the layout."
-    )
-    management_groups: dict[str, list[str]] = Field(
-        default_factory=dict, description="The management groups in the layout."
+    roles: list[Role] = Field(
+        default_factory=list, description="The roles in the layout."
     )
 
     class Config:
         validate_assignment = True
         schema_extra = {
             "example": {
-                "roles": {
-                    "role1": Role.Config.schema_extra["example"],
-                    "role2": Role.Config.schema_extra["example"],
-                },
-                "peer_groups": {
-                    "group1": ["role1", "role2"],
-                    "group2": ["role2", "role3"],
-                },
-                "management_groups": {
-                    "manager1": ["role1", "role2"],
-                    "manager2": ["role3"],
-                },
+                "roles": [
+                    Role.Config.schema_extra["example"],
+                    Role.Config.schema_extra["example"],
+                ],
             }
         }
-
-    @property
-    def non_manager_roles(self) -> set[str]:
-        return self.roles.keys() - self.management_groups.keys()
 
 
 class Member(BaseModel):
@@ -67,7 +51,28 @@ class Member(BaseModel):
 
 class TeamSpec(BaseModel):
     name: str = Field(description="A name to identify the team.")
+    type: str = Field(description="The type of the team.")
     layout: Layout = Field(description="The layout of the team.")
+
+    class Config:
+        validate_assignment = True
+        schema_extra = {
+            "example": {
+                "name": "Red Team",
+                "type": "red",
+                "layout": Layout.Config.schema_extra["example"],
+            }
+        }
+
+    def get_role(self, role_name: str) -> Optional[Role]:
+        return next(
+            filter(lambda role: role.name == role_name, self.layout.roles), None
+        )
+
+
+class TeamStatus(BaseModel):
+    name: str = Field(description="A name to identify the team.")
+    status: str = Field(default="active", description="The status of the team.")
     members: dict[str, Member] = Field(
         default_factory=dict, description="The members of the team."
     )
@@ -77,45 +82,11 @@ class TeamSpec(BaseModel):
         schema_extra = {
             "example": {
                 "name": "Red Team",
-                "layout": Layout.Config.schema_extra["example"],
+                "status": "active",
                 "members": {
                     "member1": Member.Config.schema_extra["example"],
                     "member2": Member.Config.schema_extra["example"],
                 },
-            }
-        }
-
-    def get_role(self, role_name: str) -> Optional[Role]:
-        return self.layout.roles.get(role_name)
-
-    def get_role_peers(self, role_name: str) -> list[str]:
-        peers = []
-        # Concatenate all roles in the peer groups that contain the role
-        for peer_group in self.layout.peer_groups.values():
-            peer_group = set(peer_group)
-            if role_name in peer_group:
-                # Exclude the role itself from list of peers
-                peers.extend(peer_group - {role_name})
-        return peers
-
-    def get_role_manager(self, role_name: str) -> Optional[str]:
-        # Find the first manager role that contains the agent's role
-        for manager, managed_roles in self.layout.management_groups.items():
-            if role_name in managed_roles:
-                return manager
-        return None
-
-
-class TeamStatus(BaseModel):
-    name: str = Field(description="A name to identify the team.")
-    status: str = Field(default="active", description="The status of the team.")
-
-    class Config:
-        validate_assignment = True
-        schema_extra = {
-            "example": {
-                "name": "Red Team",
-                "status": "active",
             }
         }
 
@@ -143,17 +114,5 @@ class TeamResource(RosterResource):
     def get_role(self, name: str) -> Optional[Role]:
         return self.spec.get_role(name)
 
-    def get_role_manager(self, name: str) -> Optional[str]:
-        return self.spec.get_role_manager(name)
-
     def get_member_by_role(self, role: str) -> Optional[Member]:
-        return self.spec.members.get(role)
-
-    def get_role_peers(self, role: str) -> list[str]:
-        return self.spec.get_role_peers(role)
-
-    def roles_share_peer_group(self, role_one: str, role_two: str) -> bool:
-        for peer in self.spec.get_role_peers(role_one):
-            if peer == role_two:
-                return True
-        return False
+        return self.status.members.get(role)
