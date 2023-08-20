@@ -53,6 +53,9 @@ class TeamSpec(BaseModel):
     name: str = Field(description="A name to identify the team.")
     type: str = Field(description="The type of the team.")
     layout: Layout = Field(description="The layout of the team.")
+    members: dict[str, Member] = Field(
+        default_factory=dict, description="The members of the team."
+    )
 
     class Config:
         validate_assignment = True
@@ -61,6 +64,10 @@ class TeamSpec(BaseModel):
                 "name": "Red Team",
                 "type": "red",
                 "layout": Layout.Config.schema_extra["example"],
+                "members": {
+                    "member1": Member.Config.schema_extra["example"],
+                    "member2": Member.Config.schema_extra["example"],
+                },
             }
         }
 
@@ -115,4 +122,4 @@ class TeamResource(RosterResource):
         return self.spec.get_role(name)
 
     def get_member_by_role(self, role: str) -> Optional[Member]:
-        return self.status.members.get(role)
+        return self.spec.members.get(role)
